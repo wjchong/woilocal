@@ -43,53 +43,34 @@
 		$dateutc=strtotime($date);
 	
 	   
-	   mysqli_query($conn,$query);
-	   mysqli_query($conn,$sql);
-	   mysqli_query($conn,$sql2);
-	   if($_GET['type']!="past")
-		{
-			
-		}
-	   // mysqli_query($conn,$sql);
+	
 	if(isset($_GET['type']))    
 	{
 		if($_GET['type']!="past")
 		{
+			
 			 // $sql = "UPDATE users SET last_login = '$dateutc',active_login='n' WHERE id = '$id'";	   
-			$sql2 = "UPDATE user_login SET logout_time = '$dateutc',is_active='n' WHERE user_id = '$loginidset' and is_active='y'";	
-				$sql = "UPDATE users SET last_login = '$dateutc',active_login='n',shift_open='n' WHERE id = '$loginidset'";	   
-	
+			 $sql2 = "UPDATE user_login SET logout_time = '$dateutc',is_active='n' WHERE user_id = '$loginidset' and is_active='y'";	
+			    $loginsql = "UPDATE users SET last_login = '$dateutc',active_login='n',shift_open='n' WHERE id = '$loginidset'";
+			
+			 mysqli_query($conn, $loginsql);
+			  mysqli_query($conn, $sql2);
 			if($cash_system=="on")
 			{
-				 echo   $query="UPDATE cash_system SET is_active= 'n',logout_time='$dateutc' WHERE user_id = '$loginidset' and is_active='y'";  
-				$pastcash = mysqli_fetch_assoc(mysqli_query($conn,"SELECT id FROM cash_system WHERE is_active='y' AND user_id='$loginidset'"));
-				if($pastcash)
-				{
-					$cashq="INSERT INTO cash_system (`user_id`, `login_time`) VALUES ('$loginidset', '$dateutc')";
-				
-						mysqli_query($conn,$cashq);
-
-				}
+				$query="UPDATE cash_system SET is_active= 'n',logout_time='$dateutc' WHERE user_id = '$loginidset' and is_active='y'"; 
+				mysqli_query($conn, $query);					
+				$cashq="INSERT INTO cash_system (`user_id`, `login_time`) VALUES ('$loginidset', '$dateutc')";
+				mysqli_query($conn,$cashq);
 			}
-			
-			if($active_login=="y")
-				{
-				  $updatelogin="update users set last_login='$dateutc' where id='$loginidset'";  
-					 $sql2 = "UPDATE user_login SET logout_time = '$dateutc',is_active='n' WHERE user_id = '$loginidset' and is_active='y'";	
-				  mysqli_query($conn, $sql2);
-				  mysqli_query($conn, $updatelogin);
-				}
-		}
+			$_SESSION['shift_printed']="y";
+			 session_destroy();   
+		}  
 	}
 	else
 	{
 		$_SESSION['shift_printed']="y";
 		session_destroy();
-	}
-	
-		
-	
-	
+	}   
 	 $sql = "
 
 		SELECT *

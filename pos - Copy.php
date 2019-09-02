@@ -1589,7 +1589,7 @@ function getcust_name()
                         </div>
 
                     </div>
-                  
+                    </form> 
                     <?php
                     //vandhu
 
@@ -1654,19 +1654,6 @@ function getcust_name()
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Cash Paid</span>
                                                 <input type="text" id="paid3" value="0" class="amount" name="paid" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
-											 <div style="padding-top: 5px;font-weight:bold;display: flex;" class="input-has-value">
-											    <select class="form-control" name="select_wallet" style="font-size:18px;">
-												<option value='-1'> Select Wallet</option>
-												<option  value='wechat'>Wechat</option>
-												<option  value='boostpay'>Boost Pay</option>
-												<option  value='grabpay'>Grab Pay</option>
-												<option  value='touch'>Touch & Go</option>
-												<option  value='fpx'>FPX</option>
-												</select>
-                                               
-												
-                                                <input type="text" id="wallet_paid" value="0" class="amount" name="wallet_paid_amount" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
-                                            </div>
                                             <div style="padding-top: 5px;font-weight:bold;display: flex;">
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid;border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Change</span>
                                                 <input type="text" id="change3" name="change" class="amount" style=" font-size: 20px; width: 37%;margin-left: 23%; border: 1px solid #555555;padding-left: 4px;">
@@ -1728,7 +1715,6 @@ function getcust_name()
                             
                                         </div>
 			  </div>
-			    </form> 
 			</div>
 			 
               
@@ -2641,11 +2627,10 @@ function getcust_name()
                        var mb = $('#viewer3').text();
 					  // alert(mb);
                      $('#paid3').val(mb);
-                   var paidkoocoin=$("#wallet_paid").val();
+                   
                      var tol = document.getElementById("total_amount3").innerText;
-					
-                      // var final = parseFloat(tol)-parseFloat(mb);
-                      var final =  (parseFloat(tol))-(parseFloat(mb)+parseFloat(paidkoocoin));
+               
+                      var final = parseFloat(tol)-parseFloat(mb);
                       var value = Math.abs(final);
                       var v = value.toFixed(2);
                       $('#change3').val(v);
@@ -2663,29 +2648,10 @@ function getcust_name()
 		   var dis_num = $(this).val();
 		    var tol = document.getElementById("total_amount3").innerText;
 			var paid3=$('#paid3').val();
-			var paidkoocoin=$("#wallet_paid").val();
 			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
 			  var mb = $('#viewer3').text();
 		// alert(mb);
-		    		  // var final = parseFloat(tol)-parseFloat(total_paid);
-		    		  var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
-                var value = Math.abs(final);
-                      var v = value.toFixed(2);
-                      $('#change3').val(v);
-		$('#paid_amount_pos').val(paid3);
-		$('#change_pos').val(v);
-		$('#discount_amount').val(dis_num);
-	 });
-	  $("#wallet_paid").on("keyup", function(){
-		   var paidkoocoin = $(this).val();
-		   var dis_num=$("#discount3").val();
-		    
-		    var tol = document.getElementById("total_amount3").innerText;
-			var paid3=$('#paid3').val();
-			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
-			  var mb = $('#viewer3').text();
-		// alert(mb);
-		    		   var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));  
+		    		  var final = parseFloat(tol)-parseFloat(total_paid);
                 var value = Math.abs(final);
                       var v = value.toFixed(2);
                       $('#change3').val(v);
@@ -2695,13 +2661,12 @@ function getcust_name()
 	 });
 	  $("#paid3").on("keyup", function(){
 		   var dis_num = $(this).val();
-		   var paidkoocoin=$("#wallet_paid").val();
 		    var tol = document.getElementById("total_amount3").innerText;
 			var paid3=$('#paid3').val();
 			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
 			  var mb = $('#viewer3').text();
 		// alert(mb);
-		    		   var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));  
+		    		  var final = parseFloat(tol)-parseFloat(total_paid);
                 var value = Math.abs(final);
                       var v = value.toFixed(2);
                       $('#change3').val(v);

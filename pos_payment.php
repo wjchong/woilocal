@@ -49,6 +49,8 @@ $user_roles=$merchant_data['user_roles'];
 	 $subpro_price = implode(',', $_POST['subpro_price']);
 	 $qty = implode(',', $_POST['qty']);
 	 $varient_type = $_POST['varient_type'];
+	 $select_wallet = $_POST['select_wallet'];
+	 $wallet_paid_amount = $_POST['wallet_paid_amount'];
 	 $t_price=[];
 	 $c=0;
 	 // print_R($_POST['subpro_price'][0]);
@@ -63,6 +65,10 @@ $user_roles=$merchant_data['user_roles'];
 	 $price = implode(',', $price);
 	 // print_R($price);
 	 // die;
+	 if($select_wallet!='-1')
+		 $pay_mode=$select_wallet;
+	 else
+		 $pay_mode="cash";
 	 if($varient_type)
 		{ 
 			$vcount=0;
@@ -108,8 +114,8 @@ $user_roles=$merchant_data['user_roles'];
 	if($discount_amount)
 		$discount_amount=number_format($discount_amount,2);
 	
-	 $sqlFinalIns = "INSERT INTO order_list SET paid_amount_pos='$paid_amount_pos',change_pos='$change_pos',discount_amount='$discount_amount',status='$status',order_place='poslocal',product_id='$pro_id',  user_id='$m_id', merchant_id='$m_id', quantity='$qty', amount='$price', remark='$remark_val',table_type='".$table_type."',section_type='$section_type',created_on='$date', invoice_no='$invoice_no',invoice_seq='$invoice_seq',varient_type='$v_str',product_code='$p_code'";
-    
+	 $sqlFinalIns = "INSERT INTO order_list SET wallet='$pay_mode',wallet_paid_amount='$wallet_paid_amount',paid_amount_pos='$paid_amount_pos',change_pos='$change_pos',discount_amount='$discount_amount',status='$status',order_place='poslocal',product_id='$pro_id',  user_id='$m_id', merchant_id='$m_id', quantity='$qty', amount='$price', remark='$remark_val',table_type='".$table_type."',section_type='$section_type',created_on='$date', invoice_no='$invoice_no',invoice_seq='$invoice_seq',varient_type='$v_str',product_code='$p_code'";
+  
 		 $test_method = mysqli_query($conn, $sqlFinalIns);
 	    	if($test_method)
 	    	{   

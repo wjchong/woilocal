@@ -344,7 +344,8 @@ error_reporting(E_ALL);
     while ($row=mysqli_fetch_assoc($data)){
         $user_id = $row['user_id'];
         $merchant_id = $row['merchant_id'];
-		   $varient_type = $row['varient_type'];
+        $wallet_paid_amount = $row['wallet_paid_amount'];
+		$varient_type = $row['varient_type'];
         $product_ids = explode(",",$row['product_id']);
         $product_qty = explode(",", $row['quantity']);
         $product_amt = explode(",", $row['amount']);
@@ -396,7 +397,7 @@ error_reporting(E_ALL);
 		// print_R($incsst);
 		// print_R($final_amount);
 		// die;    
-        $item = array('final_amount'=>$final_amount,'varient_type'=>$varient_type,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type, 'location' => $location, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
+        $item = array('wallet_paid_amount'=>$wallet_paid_amount,'final_amount'=>$final_amount,'varient_type'=>$varient_type,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type, 'location' => $location, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
         array_push($array_detail, $item);
     }
     echo json_encode($array_detail);
@@ -548,6 +549,27 @@ if( isset( $_POST['method']) && ( $_POST['method'] == "neworder" )  ) {
 	   echo json_encode($item);
 		die;       
   }
+  if( isset( $_POST['method']) && ( $_POST['method'] == "normalorder" ) ) {
+	$print='n';
+	
+	$order = $_POST['order'];
+	// print_R($order);
+	// die;
+	$product_ids=$order['product_ids'];
+	$mer_id=670;
+    $date = $_POST['date'];
+    $time = $_POST['time'];
+	
+    $ref_result = mysqli_fetch_assoc(mysqli_query($conn, "SELECT id, print_ip_address,printer_style,printer_profile,usb_name FROM users WHERE id='".$_SESSION['login']."'"));
+	
+	// print_R($ref_result);
+	// die;
+	
+	$ip_address = $ref_result['print_ip_address'];
+	$print_report=OrderCustomprint($ip_address,$order,$date,$time,$conn,$ref_result);
+	echo json_encode($print_report);
+	die;
+}
 if( isset( $_POST['method']) && ( $_POST['method'] == "getUnPrintedOrder2" )  ) {
     $id = $_POST['id'];
 

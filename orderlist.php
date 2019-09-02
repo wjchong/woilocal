@@ -1753,16 +1753,11 @@ input[name='p_total[]'],input[name='p_price[]']{
               <?php } ?>
 			</div>
 			<div class="form-group otp_form" style="display:none;">
-				<div id="divOuter">
-					<div id="divInner">
-					Otp code
-						<input id="partitioned" type="Number" maxlength="4" />
-						   <!--small style="float:right;color:#28a745;display:none;" class="resend send_otp">Resend</small!-->
-						 <small class="otp_error" style="display: none;color:#e6614f;">
-							Invalid Otp code
-						</small>
-					</div>
-				</div>
+				 <label for="login_password">Create Password to login</label>
+                <input  type="password" id="create_ajax_password" class="form-control" name="create_password" required/>
+				  <i  onclick="myFunction()" id="eye_slash" class="fa fa-eye-slash" aria-hidden="true"></i>
+	  <span onclick="myFunction()" id="eye_pass"> Show Password </span>
+				
 			</div>
 				
 			  <div class="login_passwd_field" style="display:none;">
@@ -1797,7 +1792,14 @@ input[name='p_total[]'],input[name='p_price[]']{
           </div>
           <div class="modal-footer login_footer">
             <div class="row" style="margin: 0;">
-			 
+			  <div class="col" style="padding: 0;margin: 5px;">
+                
+                <input type="submit" class="btn btn-primary create_password"  name="" value="Create" style="float: right;"/>
+				 <small id="login_error" style="color:#e6614f;">
+                 
+                </small>
+				   
+              </div>
              
               <div class="col otp_fields join_now" style="padding: 0;margin: 5px;display:none;">
                 
@@ -1875,7 +1877,7 @@ function myFunction2() {
 		}
 		else
 		{
-			nextstep();
+			// nextstep();
 		}
 	    // alert(new_order);
 		  // nextstep();
@@ -1931,45 +1933,11 @@ function myFunction2() {
 		   $(".forgot_now").show();
 		  $('.forgot-form').show();
 	  });  
+   $(".create_password").click(function(){
+	  var payment = $(".create_ajax_password").val();
+   });
    $(".send_otp").click(function(){
-	  // $(".resend").hide();
-	  
-	  var otp_count=$("#otp_count").val();
-	  if(otp_count<3)
-	  {
-	  var usermobile=$("#user_mobile").val();
-	  // var usermobile=+919001025477;
-	   //target:'#picture';
-	    // $(this).hide();
-		var data = {usermobile:usermobile, method: "sendotp"};
-	  $.ajax({
-		  
-		  url :'functions.php',
-		  type:'POST',
-      dataType : 'json',
-      data:data,
-		  success:function(response){
-			  var data = JSON.parse(JSON.stringify(response));
-			  if(data.status==true)
-			  {
-				  otp_count++;
-				  
-				  $("#otp_count").val(otp_count);
-				  $("#system_otp").val(data.otp);
-				 $(".otp_form").show(); 
-			  }
-			  
-			}		  
-	  });
-	   // setTimeout(function () {
-						// $(".resend").show();
-					// }, 15000);
-	  }
-	  else
-	  {
-		  // $('#register_error').html('You Extend Send Otp limit');
-		  // $('#register_error').show();
-	  }
+	   $(".otp_form").show(); 
 	 
   });
    $(".skiponline").click(function(){
@@ -2093,26 +2061,7 @@ function myFunction2() {
 						  // var usermobile=+919001025477;
 						   //target:'#picture';
 							// $(this).hide();
-							var data = {usermobile:usermobile, method: "sendotp"};
-						  $.ajax({
-							  
-							  url :'functions.php',
-							  type:'POST',
-						  dataType : 'json',
-						  data:data,   
-							  success:function(response){
-								  var data = JSON.parse(JSON.stringify(response));
-								  if(data.status==true)
-								  {
-									  otp_count++;
-									  
-									  $("#otp_count").val(otp_count);
-									  $("#system_otp").val(data.otp);
-									 $(".otp_form").show(); 
-								  }
-								  
-								}		  
-						  });
+							
 						   // setTimeout(function () {
 											// $(".resend").show();
 										// }, 15000);

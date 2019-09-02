@@ -161,11 +161,11 @@ $left_rec = $rec_count - ($page * $rec_limit);
 								<div class="form-group">
 									<label> Starting Date: </label>
 									<div class="input-group">
-                                        <input readonly type="text" size="16" class="form-control" name="start_dt" value="<?= $start_dt;?>">
+                                        <input  type="text" size="16" class="form-control" name="start_dt" value="<?= $start_dt;?>">
                                         <span class="input-group-addon" style="padding: 0.3rem;">
-                                            <!--button class="btn default" type="button" style="padding: 0.3rem;">
+                                            <button class="btn default" type="button" style="padding: 0.3rem;">
                                                 <i class="fa fa-calendar"></i>
-                                            </button!-->
+                                            </button>
                                         </span>
                                     </div>
 									<!-- <input type="date" name="start_dt" class="form-control form_datetime" value="<?= $start_dt;?>"/> -->

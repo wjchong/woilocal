@@ -1,20 +1,12 @@
 <?php 
 include("config.php");
 
-$date = date('Y-m-d H:i');
-$shift_start_dt = $date;
+$date = date('Y-m-d H:i:s');
+$start_dt = $date;
 $end_dt = $date;
-$shift_printed=$_SESSION['shift_printed'];
-if($shift_printed=="y")
-{
-	include("logout.php");
-}
-$_SESSION['shift_printed']='';
 if(!isset($_SESSION['login']) || empty($_SESSION['login'])){
 	header("location:logout.php");
 }
-// $merchant = $_SESSION['login'];
-// $mercant_id=$_SESSION['login'];
 $profile_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$_SESSION['login']."'"));
 // print_R($profile_data);
 // die;
@@ -28,12 +20,14 @@ else
 	$loginidset=$_SESSION['login'];
 
 }
-$mercant_id=$loginidset;
-$merchant_detail = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id ='".$_SESSION['login']."'"));
-$lastcash=mysqli_fetch_assoc(mysqli_query($conn,"select *  from cash_system where user_id='$mercant_id' and is_active='n' order by id desc limit 0,1"));
-  $last_cash_logout=$lastcash['logout_time'];
+$merchant = $loginidset;
+$merchant_detail = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id ='".$loginidset."'"));
 
-if($last_cash_logout)
+$sstper = $merchant_detail['sst_rate'];
+$lastcash=mysqli_fetch_assoc(mysqli_query($conn,"select *  from cash_system where user_id='$loginidset' and is_active='n' order by id desc limit 0,1"));
+ 
+ $last_cash_logout=$lastcash['logout_time'];
+ if($last_cash_logout)
  $last_cash_logout= strtotime('+1 second', $last_cash_logout);
 if($last_cash_logout=='' && $merchant_detail['last_login'])
 $last_cash_logout=$merchant_detail['last_login'];
@@ -41,37 +35,37 @@ else
 {
 	if($last_cash_logout=='')
 	$last_cash_logout=strtotime($date);
-}
+} 
 if($last_cash_logout)
-  $shift_start_dt=date("Y-m-d H:i:s", $last_cash_logout);
-
-$sstper = $merchant_detail['sst_rate'];
-// echo $last_cash_logout;
+{
+   $shift_start_dt=date("Y-m-d H:i:s", $last_cash_logout);
+}
+// echo $start_dt;
 // die;
 if(isset($_POST['search'])){
-	// $start_dt = $_POST['start_dt'];
-	// $end_dt = $_POST['end_dt'];
-	$end_dt=date("Y-m-d H:i", strtotime($_POST['end_dt']));
+	// print_R($_POST);
+	// die;
+	$shift_start_dt = $_POST['start_dt'];
+	$end_date = $_POST['end_dt'];
+	 $sql = "
+	SELECT *
+    FROM order_list
+    left join users on order_list.user_id = users.id
+    WHERE created_on >= '$shift_start_dt' AND created_on <= '$end_date' AND merchant_id = '$merchant'";
+}
+else
+{
+  $sql = "
+	SELECT *
+    FROM order_list
+    left join users on order_list.user_id = users.id
+    WHERE created_on >= '$shift_start_dt' AND created_on <= '$end_dt' AND merchant_id = '$merchant'";
+	$end_date=$end_dt;
+
 }
 
-$print_report="y";
-  $sql1 = "
-	SELECT *
-    FROM order_list
-    left join users on order_list.user_id = users.id
-    WHERE created_on >= '$shift_start_dt' AND created_on <= '$end_dt' AND merchant_id = '$mercant_id' and status in(0,2)";
-
-$result1 = mysqli_query($conn, $sql1);
-$pending_count=mysqli_num_rows($result1);
-$pastquery=mysqli_query($conn,"select *  from cash_system where user_id='$mercant_id' and is_active='n' order by id desc");
-
- $pastcount=mysqli_num_rows($pastquery);
-    $sql = "
-	SELECT *
-    FROM order_list
-    left join users on order_list.user_id = users.id
-    WHERE created_on >= '$shift_start_dt' AND created_on <= '$end_dt' AND merchant_id = '$mercant_id'";
-
+// echo $sql;
+// die;
 $result = mysqli_query($conn, $sql);
 $reports = array();
 while($row = mysqli_fetch_assoc($result)){
@@ -80,10 +74,10 @@ while($row = mysqli_fetch_assoc($result)){
 	$amounts = explode(",", $row['amount']);
 	for($i = 0; $i < count($products); $i++){
 		$product_id = $products[$i];
-		$sql2 = "SELECT *
+		$sql = "SELECT *
                 FROM products
                 WHERE id = '$product_id'";
-        $product = mysqli_fetch_assoc(mysqli_query($conn, $sql2));
+        $product = mysqli_fetch_assoc(mysqli_query($conn, $sql));
         $item = array(
         	'name' => $product['product_name'],
         	'category' => $product['category'],
@@ -98,10 +92,6 @@ function cmp($a, $b){
     return strcmp($a['category'], $b['category']);
 }
 usort($reports, "cmp");
-if(($pending_count>0) && count($reports)>0)
-$print_report="n";	
-
-
 ?>
 <!DOCTYPE html>
 <html lang="en" style="" class="js flexbox flexboxlegacy canvas canvastext webgl no-touch geolocation postmessage websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers applicationcache svg inlinesvg smil svgclippaths">
@@ -193,23 +183,22 @@ $print_report="n";
 						<div class="col-sm-12">
 							<div class="col-sm-3 search-item">
 								<div class="form-group">
-									<label>Shift Starting Date: </label>
-									<div class="input-group">
-									
-                                        <input readonly type="text" size="16" class="form-control" name="start_dt" value="<?= $shift_start_dt;?>">
+									<label>Starting Date: </label>
+									<div class="input-group date form_datetime form_datetime bs-datetime">
+                                        <input type="text" size="16" class="form-control" name="start_dt" value="<?= $shift_start_dt;?>">
                                         <span class="input-group-addon" style="padding: 0.3rem;">
-                                            <!--button class="btn default" type="button" style="padding: 0.3rem;">
+                                            <button class="btn default date-set" type="button" style="padding: 0.3rem;">
                                                 <i class="fa fa-calendar"></i>
-                                            </button!-->
+                                            </button>
                                         </span>
                                     </div>
-									<!-- <input type="date" name="start_dt" class="form-control form_datetime" value="<?= $shift_start_dt;?>"/> -->
+									<!-- <input type="date" name="start_dt" class="form-control form_datetime" value="<?= $start_dt;?>"/> -->
 								</div>
 							</div>
 							<div class="col-sm-3 search-item">
 								<label>End Date: </label>
 									<div class="input-group date form_datetime form_datetime bs-datetime">
-                                        <input type="text" size="16" class="form-control" name="end_dt" value="<?= $end_dt;?>">
+                                        <input type="text" size="16" class="form-control" name="end_dt" value="<?php  if($end_date){echo $end_date;}?>">
                                         <span class="input-group-addon" style="padding: 0.3rem;">
                                             <button class="btn default date-set" type="button" style="padding: 0.3rem;">
                                                 <i class="fa fa-calendar"></i>
@@ -226,30 +215,14 @@ $print_report="n";
 								<input type="submit" value="Search" class="btn btn-default form-control" name="search">
 							</div>
 							<div class="col-sm-2 search-item" >
-								<?php if(count($reports) > 0){
-								    if($print_report=="y")
-									{
-										$url="print_shift_report.php?type=latest&start_dt=".$shift_start_dt."&end_dt=".date('Y-m-d H:i',strtotime($end_dt))."&user=".$mercant_id;
-										
-									}
-									else
-									{
-										$url="print_shift_report.php?type=latest&start_dt=".$shift_start_dt."&end_dt=".date('Y-m-d H:i',strtotime($end_dt))."&user=".$mercant_id;
-										
-										// $url="#";
-										// $url="print_shift_report.php?start_dt=".$shift_start_dt."&end_dt=".date('Y-m-d H:i',strtotime($end_dt))."&user=".$mercant_id;
-										
-									}   
-									?>
-										<a href="<?php echo $url; ?>" class="btn btn-default form-control <?php if($print_report=="n"){ echo "print_stop";} ?>" >Close Shift</a>
-
+								<?php if(count($reports) > 0){?>
+									<a href="print_report.php?start_date=<?= $shift_start_dt;?>&end_date=<?= $end_date?>&user=<?= $_SESSION['login'];?>" class="btn btn-default form-control" >Report</a>
 								<?php }?>
 								
 							</div>
 						</div>
 					</form>
-					
-					<?php if(count($reports)>0){ ?>
+				
 					<table class="table table-striped display">
 						<thead>
 						<tr>
@@ -258,7 +231,7 @@ $print_report="n";
 							<th>Category</th>
 							<th>Product</th>
 							<th>Qty</th>
-							<th>Unit Amounts</th>
+							<th>Unit Amount</th>
 							<th>Total Amount</th>
 							<?php if($sstper>0){ ?>
 							 <th><?php echo "SST ".$sstper." %"?></th>
@@ -270,27 +243,14 @@ $print_report="n";
 						</thead>
 						<tbody>
 							<?php 
-							$t_qty=0;
+							 $t_qty=0;
 							 $t_amount=0;
 							 $t_sum=0;
+							 
 							for($i = 0; $i < count($reports); $i++){
 								$t_qty+=$reports[$i]['qty'];
 								$t_amount+=$reports[$i]['amounts'];
 								$t_sum+=$reports[$i]['amounts']*$reports[$i]['qty'];
-								 $product_qty = explode(",", $reports[$i]['qty']);
-								$product_amt = explode(",", $reports[$i]['amounts']);
-								$total=0;
-								$c=0;
-							     
-								foreach($product_amt as $p)
-								{
-									 $total+=($p*$product_qty[$c]);
-									$c++;
-									// echo "</br>";
-								}
-								// echo $total;
-								// die;
-								   $finaltotal+=$total;
 								?>
 								<tr>
 									<td><?= $i + 1;?></td>
@@ -302,15 +262,14 @@ $print_report="n";
 									<td><?= $reports[$i]['amounts'];?></td>
 									<td><?= $reports[$i]['amounts']*$reports[$i]['qty'];?></td>
 									<?php 
-									$total=$finaltotal;
-									 // $total=($reports[$i]['amounts']);
+									$total=$reports[$i]['amounts'];
 									if($sstper>0){ ?>   
 							<?php $incsst = ($sstper / 100) * $total;
-							    // $incsst=$incss;
-							    $g_total=$total+$incsst;
+							    $incsst=@number_format($incsst, 2);
+							    $g_total=@number_format($total+$incsst, 2);
 							 ?>
-							  <td><?php echo number_format($incsst,2); ?></td>
-							  <td><?php  echo number_format($g_total,2);?></td>
+							  <td><?php echo $incsst; ?></td>
+							  <td><?php  echo $g_total;?></td>
 							<?php } ?>
 								</tr>
 							<?php }?>
@@ -322,40 +281,7 @@ $print_report="n";
 						<th><?php echo $t_sum; ?></th>
 						</tr>
 					</table>
-					<?php } ?>
-					 <div style="width:100%">   
-				 <?php  if($pastcount>0){?>
-					<h4>Past Cash System Record</h4>
 					
-					
-					   <table class="table">
-						<thead>
-						  <tr>
-							<th>id</th>
-							<th>Shift Login Time</th>
-							<th>Shift Logout Time</th>
-							<th>Report</th>
-						
-						  </tr>
-						</thead>
-						<tbody>
-						<?php  $j=1; while ($p=mysqli_fetch_assoc($pastquery)){
-							
-							?>
-						    <tr>
-							<th><?php echo $j; ?></th>
-							<th><?php echo $s_d=date("Y-m-d H:i", $p['login_time']); ?></th>
-							<th><?php echo $end_d=date("Y-m-d H:i", $p['logout_time']);
-							$url="print_shift_report.php?type=past&start_dt=".$s_d."&end_dt=".$end_d."&user=".$mercant_id."&cash_id=".$p['id'];
-							?></th>
-							<th><a href="<?php echo $url; ?>" class="">Report</a></th>
-							
-						  </tr>
-						<?php $j++; } ?>
-						</tbody>
-					  </table>
-					<?php } ?>    
-					</div>
 				</div>
 			</main>
         </div>
@@ -381,10 +307,6 @@ $(document).ready(function() {
     format: "yyyy-mm-dd  hh:ii:ss",
     fontAwesome: true
 });
-$('.print_stop').click(function() {
-  alert('You still have pending/accepted transactions, please do it before you are allowed to close shift.');
-});
-
 });
 </script>
 

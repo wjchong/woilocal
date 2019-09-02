@@ -42,28 +42,6 @@ else
 	$loginidset=$_SESSION['login'];
 
 }
-$parent_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='$loginidset'"));
- $cash_check=$parent_data['cash_system'];
-
-$cash_match="n";
-  $cash_allow=$_SESSION['cash_allow'];
-
- $cash_id=$_SESSION['cash_id'];
-
-if($cash_allow)
-{
-	if($cash_check=="on")
-	{
-		
-		if($cash_id)
-		{
-			$cash_match="y";
-		}
-	}
-}
-// echo $cash_match;
-// die;
-$_SESSION['cash_allow']='';
 $stock_inventory=$profile_data['stock_inventory'];
 $process_password_need=$profile_data['process_password_need'];
 if($process_password_need)
@@ -690,7 +668,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                         <h3><?php //echo $language['order_list'];?></h3>
                         <span style="cursor: pointer; color:blue;text-decoration:underline;font-size: 40px;" id="scan_order"><?php echo $language['scan_order'];?></span>
 						&nbsp;&nbsp;&nbsp;&nbsp;<span style="cursor: pointer; color:green;text-decoration:underline;font-size: 40px;" id="scan_order1">Table/combine bill</span>
-						<p><a href="pos.php" style="cursor: pointer; color:green;text-decoration:underline;font-size: 40px;margin-left:20%;">Place Order</a></p>
+						<p><a href="prepos.php" style="cursor: pointer; color:green;text-decoration:underline;font-size: 40px;margin-left:20%;">Place Order</a></p>
 						<?php if($alaram_required=="y"){ ?>
 						 <span class="alaram" style="display:none;">
 						 <img id="alaram_noise" src="https://i.gifer.com/McRx.gif" style="max-width:200px;"/>
@@ -792,7 +770,8 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                         <?php
                         $i =1;
                         while ($row=mysqli_fetch_assoc($total_rows)){
-						
+							// print_R($row);
+							// die;
 							
 						$wallet=$row['wallet'];
 						if($wallet=="myr_bal")
@@ -818,7 +797,6 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                         
                        
                         $date=date_create($created);
-							
                         ?>
                         <?php
                         if($row['status'] == 1) $callss = "gr";
@@ -831,7 +809,6 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                             <input type="hidden" class="userphone_<?php echo $row['id'];?>" value="<?php echo $row['user_mobile'];?>" >
                             <input type="hidden" class="merchantphone_<?php echo $row['id'];?>" value="<?php echo $merchant_name['mobile_number'];?>" >
                             <input type="hidden" class="merchantaddress_<?php echo $row['id'];?>" value="<?php echo $merchant_name['google_map'];?>" >
-							<input type='hidden' id='cash_id' name='cash_id' value='<?php echo $cash_id; ?>'/>
                             <?php if($i==1){ ?>
 							<input type="hidden" value="<?php echo $last_id;?>"  id="last_id"/>
 							<?php } ?>
@@ -852,7 +829,6 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                               $diff_second = $dteDiff->s;
                               if($diff_second < 10) $diff_second = '0'.$diff_second;
                               $diff_time = $diff_day.'<br>'.$diff_hour.$diff_minute.$diff_second;
-							 
                             ?>
                             <td><?php echo date_format($date,"m/d/Y");  ?>
                                 <?php echo '<br>'; echo $new_time[1] ?>
@@ -879,7 +855,6 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 									$sta = "Accepted";
 									$s_color="";
 								}
-								
                                 ?>
 								<input type="button" style="background-color:<?php echo $s_color;?>" class= "status btn btn-primary" value="<?php  echo $sta;?>" status="<?php echo $row['status'];?>" data-invoce='<?php echo $row['invoice_no'];?>' data-id="<?php echo $row['id']; ?>"/>
 							   <!--label class= "status btn btn-primary" status="<?php echo $row['status'];?>" data-invoce='<?php echo $row['invoice_no'];?>' data-id="<?php echo $row['id']; ?>"> <?php echo $sta; ?></label!-->
@@ -904,7 +879,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                             <td class="amount_<?php echo $row['id'];?>">
 
                                 <?php
-							
+
                                 $q_id = 0;
 
                                 foreach ($amount_val as $key => $value){
@@ -934,7 +909,6 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 
                             </td> 
 							<td class="quantity_<?php echo $row['id'];?>"><?php
-							
                                 foreach ($quantity_ids as $key)
                                 {  
                                     echo $key;
@@ -965,13 +939,12 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							  <td><?php echo $incsst; ?></td>
 							  <td><?php  echo $g_total;?></td>
 							<?php } else { $g_total=$total;} ?>
-							<td><?php  echo @number_format($row['wallet_paid_amount'],2); ?></td>
+							<td><?php echo @number_format($row['wallet_paid_amount'],2); ?></td>
 							<td><?php echo @number_format($g_total-$row['wallet_paid_amount'], 2); ?></td>
                            
                           
                             <td class="products_namess product_name_<?php echo $row['id'];?> test_productss" ><?php foreach ($product_ids as $key )
                                 {
-									
                                     if(is_numeric($key))
                                     {
                                         $product = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM products WHERE id ='".$key."'"));
@@ -985,15 +958,10 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                 ?>
                             </td>
 							<td><?php
-							 // $row['varient_type'];
-							// die;
-							 // print_R($row['varient_type']);
-							// die;
 							 if($row['varient_type'])
 							 {
-						$v_str=$row['varient_type'];
-							$v_array=explode(",",$v_str);
-							  
+							$v_str=$row['varient_type'];
+							$v_array=explode("|",$v_str);
 							foreach($v_array as $vr)
 							{
 								
@@ -1001,12 +969,10 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 								{
 									$v_match=$vr;
 									$v_match = ltrim($v_match, ',');
-									// echo "SELECT * FROM sub_products WHERE id  in ($v_match)";
-									// die;
 									$sub_rows = mysqli_query($conn, "SELECT * FROM sub_products WHERE id  in ($v_match)");
 									while ($srow=mysqli_fetch_assoc($sub_rows)){
 										echo $srow['name'];
-										// echo "&nbsp;&nbsp;";
+										echo "&nbsp;&nbsp;";
 									}
 								}
 								 else
@@ -1111,7 +1077,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                         <button type="button" class="close" data-dismiss="modal">&times;</button>
                                         <h4 class="modal-title" style="color: #3a3939c4;">Statement</h4>
                                     </div>
-                                    <div style="background-color:#99e1dc;padding: 10px;min-height:695px;">
+                                    <div style="background-color:#99e1dc;padding: 10px;min-height:675px;">
                                         
 
                                       
@@ -1155,10 +1121,6 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid</span>
                                                 <input type="text" id="paid2" value="0" class="amount" name="paid2" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
-											  <div style="padding-top: 5px;    display: flex;">
-                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid By Koocoin</span>
-		<input type="text" id="paidkoocoin" value="0" class="amount" readonly name="paidkoocoin" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
-                                            </div>
                                             <div style="padding-top: 5px;    display: flex;">
                                                 <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Change</span>
                                                 <input type="text" id="change2" name="change" class="amount" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%; border: 1px solid #555555;padding-left: 4px;">
@@ -1170,8 +1132,8 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             </div!-->
                                             <div class="modal-footer" style="padding-bottom:2px; border-top: none;padding: 0px;padding-top: 5px;">
                                                 <!--button style="width:200px;height:50px;background-color: #99e1dc;">Submit</button!-->
-												 <button id="amount_submit_button" class="<?php echo $p_class; ?>" style="width:261px;height:65px;background-color: #99e1dc;float: left;">Submit</button>
-												 <a  style="color:white;font-size:20px;width: 306px;height: 65px;float: left;" class="btn btn-primary status_ewallet">E-wallet</a>
+												 <button id="amount_submit_button" class="<?php echo $p_class; ?>" style="width:200px;height:50px;background-color: #99e1dc;">Submit</button>
+												 <a  style="color:white;font-size:20px;" class="btn btn-primary status_ewallet">E-wallet</a>
 											 
                                             </div>
                                         </form>
@@ -1637,10 +1599,6 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid</span>
                                                 <input type="text" id="paid3" value="0" class="amount" name="paid" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
-											 <div style="padding-top: 5px;    display: flex;">
-                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid By Koocoin</span>
-                                                <input type="text" id="paidkoocoin3" value="0" class="amount" name="paidkoocoin3" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
-                                            </div>
 											
                                             <div style="padding-top: 5px;font-weight:bold;display: flex;">
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid;border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Change</span>
@@ -1736,34 +1694,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 	
 	   }
 	</style>
-	<div id="ShiftModel" class="modal fade" role="dialog">
-				  			<div class="modal-dialog">
-
-							    <!-- Modal content-->
-							    <div class="modal-content">
-									   
-											<div class="modal-header">
-												<button type="button" class="close" id='sectionclose' data-dismiss="modal">&times;</button>
-												   Set Opening Balance to Start
-											</div>
-											 <div class="modal-body" style="padding-bottom:0px;">
-											   <div class=" col-md-6 form-group">
-													<label>Opening Balance :</label>
-													<input type="Number" class="form-control" id='opening_balance' name="opening_balance" value="" placeholder="Opening Balance" required>  
-												 <input type="hidden" name="merchant_id" id="merchant_id" value="<?php echo $loginidset;?>">
-												 </br>
-												 <button type="submit" class="btn btn-primary start_show">Start</button>
-												
-												</div>
-												
-											 </div>
-										
-										
-									
-					    		</div>
-
-				  			</div>
-	</div>
+	
 </div>
 <!-- /.widget-bg -->
 <!-- /.content-wrapper -->
@@ -1793,7 +1724,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							    <div class="modal-content">
 								
 					      			<div class="modal-header">
-					        			<h2>Total Amount has to pay RM<span id="total_wallet_amount"></span></h2>
+					        			<p>Total Amount has to pay <span id="total_wallet_amount"></span></p>
 										  <button type="button" class="close"  data-dismiss="modal">&times;</button>
 					      				
 					      			</div>
@@ -2079,45 +2010,6 @@ var qtyno = $("input[name='qtyno[]']")
         return (' ' + element.className + ' ').indexOf(' ' + className + ' ') > -1;
     }
     $(document).ready(function(){
-		 var cash_match='<?php echo $cash_match;?>';
-		var cash_id=$('#cash_id').val();
-		// alert(cash_id);
-		if(cash_match=="y")
-		$('#ShiftModel').modal('show');
-		$('.start_show').click(function() {
-		var opening_balance=$('#opening_balance').val();
-		
-		// var user_id=$('#merchant_id').val();
-		var user_id="<?php echo $loginidset; ?>";
-		
-		if(opening_balance)
-		{
-			var data = {user_id:user_id,opening_balance:opening_balance,method:"startcash",cash_id:cash_id};
-			$.ajax({
-				  
-				  url :'functions.php',
-				  type:'POST',
-				  dataType : 'json',
-				  data:data,
-				  success:function(response){
-					  var data = JSON.parse(JSON.stringify(response));
-					  if(data.status==true)
-					  {
-						location.reload();  
-					  }
-					  else
-					  {
-						  alert('Failed to start cash system');
-					  }
-					 
-					}		  
-			  });
-		}
-		else
-		{
-			alert('Opening Balance is Required To start');
-		}
-	});
 		$("#apply_criteria").on("click", function(e){
 			e.preventDefault();
 			var criteria = $("#criteria_field").find("option:selected").attr("val");
@@ -2225,26 +2117,7 @@ var qtyno = $("input[name='qtyno[]']")
 				else if(scan_type=="invo")
 				myFunction();
 			  else if(scan_type=="normal")
-			  {
-				  var yourArray = [];
-				  $('.past_invoice').each(function() {
-					   e.preventDefault();   
-					   var data_id = $(this).attr("data_id");
-					    yourArray.push(data_id);
-					   // alert(data_id);
-				  });
-				   $.ajax({
-								url : 'update_status.php',    
-								type: 'POST',
-								data: {bulk_invoice_id:yourArray, status: 1},
-								success:function(data){
-									//~ alert(1);
-									location.reload();
-								}
-							});
-				  
-			  }
-				 // alert('2'); 
+				 alert('2'); 
 			}
 			else
 			{
@@ -2318,9 +2191,8 @@ var qtyno = $("input[name='qtyno[]']")
 			<!--  start of amit code !-->
 		
 		 $("#scan_order1").click(function() {
-			 $('#selected_invoice_id').val('');
 			  $('#scan_type').val('invo');        
-             // $("#selected_invoice_id").val();
+             $("#selected_invoice_id").val();
             $("#myScanModal1").modal("show");
             $("#total_qty1").text('');
 			
@@ -2340,7 +2212,7 @@ var qtyno = $("input[name='qtyno[]']")
 			
 			 $('#WalletModel').modal('show');
 		}); 
-			$("#confirm_payment").click(function() {
+		$("#confirm_payment").click(function() {
 			var mobile_num=$('#mobile_number').val();
 			var wallet_merchant_id=$('#wallet_merchant_id').val();
 			var paid_wallet_amount=$("#paid_wallet_amount").val();
@@ -2374,16 +2246,14 @@ var qtyno = $("input[name='qtyno[]']")
 						   else
 						   {
 							   var type=obj.type;
-							   if(type=="lessbal")
-							   {
+							   if(type="lessbal")
 								alert(obj.msg);
-							   }
 						   }
 					  // alert(data);
 					  }
 				});
 						}
-		});
+		}); 
 		 $("#invoice").click(function(){
 
                  $("#InvoiceModel").show();
@@ -2487,7 +2357,7 @@ var qtyno = $("input[name='qtyno[]']")
                                     }
                                     var total_amount =  empty($("#total_amount1").text()) ? 0 : parseFloat($("#total_amount1").text());
                                     // total_amount += total;
-									// alert(total_amount);
+									alert(total_amount);
                                     total = total.toFixed(2);
 									 $("#paid_wallet_amount").val(total_amount.toFixed(2));
                                     $("#total_amount1").text(total_amount.toFixed(2));
@@ -2550,12 +2420,11 @@ var qtyno = $("input[name='qtyno[]']")
                     // alert(2);
                        var mb = $('#viewer2').text();
 					  // alert(mb);
-					  
                      $('#paid2').val(mb);
                    
                      var tol = document.getElementById("total_amount").innerText;
-					var paidkoocoin=$('#paidkoocoin').val();
-                       var final = parseFloat(tol)-(parseFloat(mb)+parseFloat(paidkoocoin));
+               
+                      var final = parseFloat(tol)-parseFloat(mb);
                       var value = Math.abs(final);
                       var v = value.toFixed(2);
                       $('#change2').val(v);
@@ -2958,7 +2827,6 @@ var qtyno = $("input[name='qtyno[]']")
                                     }
 									var amount=order['final_amount'];
 									var final_amount=order['final_amount'];
-									var wallet_paid_amount=order['wallet_paid_amount'];
                                     var total_amount =  empty($("#total_amount").text()) ? 0 : parseFloat($("#total_amount").text());
 									// alert(total_amount);
 									amount=parseFloat(amount);
@@ -2969,29 +2837,15 @@ var qtyno = $("input[name='qtyno[]']")
                                     total_amount += amount;
 									
                                     total = total.toFixed(2);
-                                    
+                                    $("#paid_wallet_amount").val(total_amount.toFixed(2));
                                     $("#total_amount").text(total_amount.toFixed(2));
 									var paid2=$("#paid2").val();
-									var paidkoocoin=$("#paidkoocoin").val();
 									// alert(paid2);
-									
-									// alert(wallet_paid_amount);
-									// alert(paidkoocoin);
-									if(wallet_paid_amount>0)
-									{
-										var paidkoocoin=parseFloat(wallet_paid_amount)+parseFloat(paidkoocoin);
-										$('#paidkoocoin').val(paidkoocoin);
-									}
-									$("#paid_wallet_amount").val(total_amount.toFixed(2));
 									if(paid2 >0)
 									{
-										// alert(parseFloat(paid2)+parseFloat(paidkoocoin));
-										var pending= (parseFloat(total_amount))-(parseFloat(paid2)+parseFloat(paidkoocoin));
-										var pending=pending.toFixed(2);
-										// alert(pending);
+										var pending= paid2-(total_amount.toFixed(2));
 										$("#change2").val(pending);
-											$("#paid_wallet_amount").val(pending);
-									} 
+									}   
                                     var total_qty =  empty($("#total_qty").text()) ? 0 : parseInt($("#total_qty").text());
                                     total_qty += qtyOfInvoice;
                                     $("#total_qty").text(parseInt(total_qty));
@@ -3087,7 +2941,7 @@ var qtyno = $("input[name='qtyno[]']")
             $('#scan_type').val('mass');        
 			$("#change2").val();
 			$("#paid2").val();
-			$("#selected_invoice_id").val('');
+			$("#selected_invoice_id").val();
             $("#myScanModal").modal("show");
             $("#total_qty").text('');
             $("#scanned_data").html('');
@@ -3327,7 +3181,7 @@ var qtyno = $("input[name='qtyno[]']")
                                         '<td style="text-align:center; padding-left: 5px;width: 21%;"><input type="hidden" name="invo[]" value="' + order['invoice_no'] + '">' + order['invoice_no'] + '</td>' +
                                           '<td style="text-align:center; padding-left: 5px;width: 7%;"><input type="hidden" name="qtyno[]" value="' + parseInt(qtyOfInvoice) + '">' + parseInt(qtyOfInvoice) + '</td>' +
                                         
-                                        '<td style="display: none"><input type="hidden" class="past_invoice" name="past_invoice[]" data_id="'+data_id+'" value="'+data_id+'"/><input type="hidden" name="product_code[]" value="' + order['product_code'] +'">' + order['product_code'] +'</td>' +
+                                        '<td style="display: none"><input type="hidden" name="past_invoice[]" value="'+data_id+'"/><input type="hidden" name="product_code[]" value="' + order['product_code'] +'">' + order['product_code'] +'</td>' +
                                         '<td style="display: none"><input type="hidden" name="remark[]" value="' + order['remark'] +'">' + order['remark'] +'</td>' +
                                         '<td style="display: none"><input type="hidden" name="product_name[]" value="' + order['product_name'] +'">' + order['product_name'] +'</td>' +
                                       
