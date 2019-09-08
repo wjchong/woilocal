@@ -291,7 +291,6 @@ if(isset($_POST['method']) && ($_POST['method'] == "getOrderDetail")){
 		else $wal_label="CASH";
         $wallet_paid_amount = $row['wallet_paid_amount'];
         $change_pos = $row['change_pos'];
-        $order_place = $row['order_place'];
         $varient_type = $row['varient_type'];
         $product_ids = explode(",",$row['product_id']);
         $product_qty = explode(",", $row['quantity']);
@@ -328,7 +327,7 @@ if(isset($_POST['method']) && ($_POST['method'] == "getOrderDetail")){
 			$register=$ref_result['register'];
 		}
 		$location=$ref_result['merchant_url'];
-        $item = array('order_place'=>$order_place,'user_location'=>$user_location,'wal_label'=>$wal_label,'wallet_paid_amount'=>$wallet_paid_amount,'change_pos'=>$change_pos,'paid_amount_pos'=>$paid_amount_pos,'discount_amount'=>$discount_amount,'user_mobile'=>$user_mobile,'varient_type'=>$varient_type,'product_ids'=>$product_ids,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type,'location' => $location, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
+        $item = array('user_location'=>$user_location,'wal_label'=>$wal_label,'wallet_paid_amount'=>$wallet_paid_amount,'change_pos'=>$change_pos,'paid_amount_pos'=>$paid_amount_pos,'discount_amount'=>$discount_amount,'user_mobile'=>$user_mobile,'varient_type'=>$varient_type,'product_ids'=>$product_ids,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type,'location' => $location, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
         array_push($array_detail, $item);     
     }  
     echo json_encode($array_detail);
@@ -345,7 +344,6 @@ error_reporting(E_ALL);
     while ($row=mysqli_fetch_assoc($data)){
         $user_id = $row['user_id'];
         $merchant_id = $row['merchant_id'];
-        $order_place = $row['order_place'];
         $wallet_paid_amount = $row['wallet_paid_amount'];
 		$varient_type = $row['varient_type'];
         $product_ids = explode(",",$row['product_id']);
@@ -399,7 +397,7 @@ error_reporting(E_ALL);
 		// print_R($incsst);
 		// print_R($final_amount);
 		// die;    
-        $item = array('order_place'=>$order_place,'wallet_paid_amount'=>$wallet_paid_amount,'final_amount'=>$final_amount,'varient_type'=>$varient_type,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type, 'location' => $location, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
+        $item = array('wallet_paid_amount'=>$wallet_paid_amount,'final_amount'=>$final_amount,'varient_type'=>$varient_type,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type, 'location' => $location, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
         array_push($array_detail, $item);
     }
     echo json_encode($array_detail);
@@ -414,8 +412,7 @@ function generatePIN($digits = 4){
     }
     return $pin;
 }
-function gw_send_sms($user,$pass,$sms_from,$sms_to,$sms_msg){    
-    return "success";       
+function gw_send_sms($user,$pass,$sms_from,$sms_to,$sms_msg){           
     $query_string = "api.aspx?apiusername=".$user."&apipassword=".$pass;
     $query_string .= "&senderid=".rawurlencode($sms_from)."&mobileno=".rawurlencode($sms_to);
     $query_string .= "&message=".rawurlencode(stripslashes($sms_msg)) . "&languagetype=1";        
@@ -1079,7 +1076,6 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 			
 			// 3 + 16 + 8 + 5 + 7 + 7
 			$mobile = $order['user_mobile'];
-			$order_place = $order['order_place'];
 			$wal_label = $order['wal_label'];
 			$wallet_paid_amount = $order['wallet_paid_amount'];
 			$discount_amount = $order['discount_amount'];
@@ -1328,43 +1324,36 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 					$printer -> text( "           " ."Change:      RM $change_pos" . "   " . "\n");
 				}
 					$printer -> text("\n");
-				if($order_place=="live" || $order_place=="poslive")
+				if($user_location)
 				{
-					if($user_location)
-					{
-						$words = explode(" ", $user_location);
-						$rows_locations = [];
-						$rows_location = '';
-						for( $i = 0 ; $i < sizeof( $words ) ; $i ++ ) {
-							$word = $words[$i];
-							$word .= ' ';
-							if( strlen( $rows_location ) + strlen( $word ) < 30 ) {
-								$rows_location .= $word;
-								if( $i == sizeof( $words ) - 1 ) {
-									array_push( $rows_locations, $rows_location);
-								}
-							} else {
-								array_push( $rows_locations, $rows_location);
-								$rows_location = $word;
-								if( $i == sizeof( $words ) - 1 ) {
-									array_push( $rows_locations, $rows_location);
-								}
-							}
-						}
-							$printer -> selectPrintMode(Printer::MODE_FONT_A);
-							$printer -> setEmphasis(false);
-							if(count($rows_locations)>0)
-							{
-
-								$printer -> text( ' ' . "Customer Location:" . "\n" );
-								foreach( $rows_locations as $item ) {
-									$printer -> text( ' ' . $item . "\n" );
-									// $printer -> text("\n");
-								}
-							}
-					}
+				$words = explode(" ", $user_location);
+				$rows_locations = [];
+				$rows_location = '';
+				for( $i = 0 ; $i < sizeof( $words ) ; $i ++ ) {
 					
-				}	
+					$word = $words[$i];
+					$word .= ' ';
+					if( strlen( $rows_location ) + strlen( $word ) < 30 ) {
+						$rows_location .= $word;
+						if( $i == sizeof( $words ) - 1 ) {
+							array_push( $rows_locations, $rows_location);
+						}
+					} else {
+						array_push( $rows_locations, $rows_location);
+						$rows_location = $word;
+						if( $i == sizeof( $words ) - 1 ) {
+							array_push( $rows_locations, $rows_location);
+						}
+					}
+				}
+				}
+				$printer -> selectPrintMode(Printer::MODE_FONT_A);
+				$printer -> setEmphasis(false);
+				foreach( $rows_locations as $item ) {
+					$printer -> text( ' ' . $item . "\n" );
+					// $printer -> text("\n");
+				}
+				   
 				$printer -> text( "============ =============" . "\n"); 
 				$printer -> text("\n");
 				$printer -> text("\n");

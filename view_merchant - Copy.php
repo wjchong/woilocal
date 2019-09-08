@@ -72,6 +72,18 @@ $nature_image = array(
 
   
 <head>
+  <script type="text/javascript">
+    // Script to remove Service Workers
+    navigator.serviceWorker.getRegistrations().then(
+        function(registrations) {
+            for(let registration of registrations) {  
+                registration.unregister();
+            }
+    });
+  </script>
+  <meta http-equiv='Pragma' content='no-cache'>
+  <meta http-equiv='Expires' content='-1'>
+  <meta http-equiv='CACHE-CONTROL' content='NO-CACHE'>
     <?php include("includes1/head.php"); ?>
   <style>
     body.noscroll{
@@ -159,35 +171,37 @@ $nature_image = array(
       border-color: #4d90fe;
     }
     input.quatity {
-    width: 90px;
-}
-.common_quant {
-    display: flex;
-}
-p.quantity {
-    margin-top: 7px;
-}
-.order_product{
-    margin-top: 15px;
-    margin-left: 10px;
-    font-size: 20px;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-bottom: 10px;
-}
-.comm_prd{
-    border: 1px #000000 solid;
-    padding-left: 15px;
-    margin-bottom: 10px;
-}
-.mBt10{
-    margin-bottom: 10px;
-}
+      width: 90px;
+    }
+    .common_quant {
+        display: flex;
+    }
+    p.quantity {
+        margin-top: 7px;
+    }
+    .order_product{
+        margin-top: 15px;
+        margin-left: 10px;
+        font-size: 20px;
+        padding-left: 10px;
+        padding-right: 10px;
+        margin-bottom: 10px;
+    }
+    .comm_prd{
+        border: 1px #000000 solid;
+        padding-left: 15px;
+        margin-bottom: 10px;
+    }
+    .mBt10{
+        margin-bottom: 10px;
+    }
 @media only screen and (max-width: 767px) and (min-width: 300px)  {
     .new_grid{
       grid-template-columns: 1fr 1fr !important;
     }
-
+    .online_label{
+		margin-left:0%;
+	}
     .text_add_cart {
         background: #003A66;
         width: 109px;
@@ -197,7 +211,6 @@ p.quantity {
         text-transform: uppercase;
         font-weight: 600;
         cursor: pointer;
-        /* margin-right: 8px; */
         border-radius: 8px;
         margin-left: -10px;
     }
@@ -662,7 +675,7 @@ input[name='p_total[]'],input[name='p_price[]']{
   <script type="text/javascript">
       var subproducts_global = [];
       var products_id_global = [];
-	   var lastAdd = null;
+      var lastAdd = null;
   </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEr0LmMAPOTZ-oxiy9PoDRi3YWdDE_vlI&libraries=places" async defer></script> 
@@ -670,10 +683,8 @@ input[name='p_total[]'],input[name='p_price[]']{
 
 <body onload="initialize()" class="header-light sidebar-dark sidebar-expand pace-done">
      <?php
-        $id = $_SESSION['mm_id'];
+		$id = $_SESSION['mm_id'];
         $merchant_detail = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$id."'"));
-		 $online_pay=0;
-		 $discounted_product = $merchant_detail['discounted_product'];
 		 $online_pay=0;
 	 if($merchant_detail['credit_check'] || $merchant_detail['wallet_check'] || $merchant_detail['boost_check'] || $merchant_detail['grab_check']
 	 || $merchant_detail['wechat_check'] || $merchant_detail['touch_check'] || $merchant_detail['fpx_check'])
@@ -681,10 +692,10 @@ input[name='p_total[]'],input[name='p_price[]']{
 		  $online_pay=1;
 		  // $payment_alert="y";
 	 }	
-	  $online_pay=1;
+	 $online_pay=1;
      $location_order=$merchant_detail['location_order'];
-	  $submerchantsql = mysqli_query($conn, "SELECT * FROM users WHERE mian_merchant='".$merchant_detail['name']."' ");
-        $stallcount=mysqli_num_rows($submerchantsql); 
+	 $submerchantsql = mysqli_query($conn, "SELECT * FROM users WHERE mian_merchant='".$merchant_detail['name']."' ");
+     $stallcount=mysqli_num_rows($submerchantsql); 
     // die;
     $location_range=$merchant_detail['location_range'];
         // echo json_decode($merchant_detail['custom_message'])->message;
@@ -729,6 +740,7 @@ input[name='p_total[]'],input[name='p_price[]']{
                      $id = $_SESSION['mm_id'];
       
                     $merchant_detail = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$id."'"));
+					$sst_rate=$merchant_detail['sst_rate'];
                     if( isset($_SESSION['login']) ) {
                         $sql_transaction = "SELECT COUNT(id) ordered_num
                             FROM order_list
@@ -883,14 +895,14 @@ input[name='p_total[]'],input[name='p_price[]']{
           ?>
                <!-- if store is open !-->
           <?php if($merchant_detail['mobile_number']!="60172669613"){ ?>
-                    <!--div class="comm_prd">
+                    <div class="comm_prd">
                     <h4 class="head_oth"><?php echo $language["order_direct"];?></h4>
                    
           <div class="oth_pr" id="oth_pr">
                     Order 
                     </div>
           
-                    </div!-->
+                    </div>
           <?php } ?>
           
 
@@ -1121,7 +1133,7 @@ input[name='p_total[]'],input[name='p_price[]']{
   
   </div>
   
-    <div class="container">
+   <div class="container">
     <div class="row">
 	    <div class="col-xs-6" style="margin-left:2%;">
 		<input value='0' type="hidden" id="total_rebate_amount" name="total_rebate_amount"/>
@@ -1137,28 +1149,28 @@ input[name='p_total[]'],input[name='p_price[]']{
           
 		</div>     
         <div class="col-xs-5 online_label" style="margin-left:2%;">
-		<?php if($discounted_product){ ?>
+		<?php if($online_pay){ ?>
            <input type="submit"  style="width:100% !important;border: 1px black solid;" class="btn btn-block btn-primary submit_button online_pay" name="cashpayment" value='Confirm (E-wallet)'/>
         
-		<?php } else { ?>   
+		<?php } else { ?>
 		 
-		<?php } ?>   
+		<?php } ?>
         </div>
        
     
     
     </div>
 </div>
+
+<?php //$urecord['balance_inr'] = bcdiv($urecord['balance_inr'], 1, 1);?>
     
-    
-         <input type="hidden" id="id" name="m_id" value="<?php echo $id;?>">
+        <input type="hidden" id="id" name="m_id" value="<?php echo $id;?>">
         <input type="hidden" name="options" value="" />  
         <input type="hidden" name="price_extra" value="" />  
         <input type="hidden" id="myr_input_bal" name="myr_input_bal" value="<?php echo $urecord['balance_myr']; ?>" />  
         <input type="hidden" id="usd_input_bal" name="usd_input_bal" value="<?php echo $urecord['balance_usd']; ?>" />  
         <input type="hidden" id="inr_input_bal" name="inr_input_bal" value="<?php echo $balance_inr; ?>" />  
     
-       
        
         </div>
         </div>
@@ -1212,7 +1224,10 @@ input[name='p_total[]'],input[name='p_price[]']{
                       <small style="position: absolute;bottom: 2px;left: 5px;font-weight: bold;color:red;">Note : e.g. 0.30 = Rm 0.30</small>
                     </div>
                   </div>
-                  <div class="modal-footer" style="position: relative;">
+                  <div class="modal-footer" style="position: relative;padding:40px 0 25px 0">
+                    <div style="position: absolute;left:5px;text-align: left;top:5px">
+                        Quantity: <input type="number" name="quantity_input" value="1" style="width:2em;text-align:center;"/>
+                    </div>
                     <button type="button" id="reset_remark" class="btn btn-danger" data-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-success save_close" data-dismiss="modal">
                     Save and
@@ -1279,11 +1294,11 @@ input[name='p_total[]'],input[name='p_price[]']{
                       
                     
                                         </div>
-                                        <div style="margin: 10px 0 10px 34%;"  class="modal-footer product_button pop_model">
+                                        <div style="margin: 10px 0;"  class="modal-footer product_button pop_model">
                         
                                          
                                         </div>
-                    <br/>
+                        <br/>
                                     </form>
                                 </div>
                             </div>
@@ -1329,40 +1344,9 @@ input[name='p_total[]'],input[name='p_price[]']{
                     <div class="modal-body" style="padding-bottom:0px;">
                         <div class="col-md-12" style="text-align: center;">
                           <h5>
-						  <?php if($merchant_detail['mobile_number']!="60172669613"){ ?>
               Sorry, we are currently experiencing some internet connection issue. If you want to place any order, please contact our waiter for placing order.
-						  <?php } else { ?>
-						   Our online order is from 8:00pm to 11.00pm only. please contact our waiter for your order. 
-						  <?php } ?>
+            
               </h5>
-                          
-                        </div>
-                    </div>
-                    <div class="modal-footer" style="padding-bottom:2px;">
-                       <button id="close_shop" type="button" class="btn btn-primary" data-dismiss="modal" style="width:50%;margin-bottom: 3%;text-align: center;">Close</button>
-                    </div>
-               
-            </div>
-        </div>
- </div>
- 
- <div class="modal fade" id="work_model" role="dialog">
-        <div class="modal-dialog">
-         
-
-            <!-- Modal content-->
-            <div class="modal-content">
-             
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title"></h4>
-                </div>
-                 
-                    <div class="modal-body" style="padding-bottom:0px;">
-                        <div class="col-md-12" style="text-align: center;">
-                          <h5>
-						  Sorry,Shop is Close Now
-						  </h5>
                           
                         </div>
                     </div>
@@ -1405,32 +1389,6 @@ input[name='p_total[]'],input[name='p_price[]']{
                                 </div>
                             </div>
     </div>
- 	<div class="modal fade" id="map_model" role="dialog">
-        <div class="modal-dialog">
-         
-
-            <!-- Modal content-->
-            <div class="modal-content">
-             
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title"></h4>
-                </div>
-                 
-                    <div class="modal-body" style="padding-bottom:0px;">
-                        <div class="col-md-12" style="text-align: center;">
-                          <h5>Sorry, To Place order You has to be in <span id='map_range'> </span> km range of Merchant </h5>
-                          
-                        </div>
-                    </div>
-                    <div class="modal-footer" style="padding-bottom:2px;">
-                       
-                    </div>
-               
-            </div>
-        </div>
- </div>
- 
 
   <div class="modal fade" id="map_model" role="dialog">
         <div class="modal-dialog">
@@ -1599,25 +1557,6 @@ input[name='p_total[]'],input[name='p_price[]']{
      
                           <div class="modal-body">
                               <p style="font-size:18px;">Insufficient balance for deduction, please select other wallet or pay by cash. </p>
-							   <button class="btn btn-large btn-primary insufficient_close">ok</button>
-                          </div>
-                      
-                      </div>
-                    </div>
-    </div>
-	<div class="modal fade" id="WalletModel" role="dialog" style="z-index:999999;margin-top:3%;">
-                    <div class="modal-dialog">
-                      <div class="modal-content" id="modalcontent">
-					   <div class="modal-header">
-        
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-     
-                          <div class="modal-body">
-                              <p style="font-size:18px;">Wallet Feature is Only Applicale for Register Member,We are Processing as Cash Wallet </p>
-							   <button class="btn btn-large btn-primary"  data-dismiss="modal">ok</button>
                           </div>
                       
                       </div>
@@ -1681,9 +1620,9 @@ input[name='p_total[]'],input[name='p_price[]']{
 					<div style="margin: 2%;max-height: 80px;text-align: left;padding: 0%;" class="col-md-3 card bg-info text-white">
 						<div class="card-body wallet_select" wallet_name="CF"  type="usd_bal">CF <br> <span id="usd_bal"><?php if(isset($urecord['balance_usd'])){ echo $urecord['balance_usd'];} ?></span></div>
 					</div!-->
-				   <div style="margin: 2%;max-height: 80px;text-align: left;padding: 0%;font-size: 13px;" class="col-md-7 card bg-info text-white">
+				   <div style="margin: 2%;max-height: 80px;text-align: left;padding: 0%;font-size: 13px;" class="col-md-6 card bg-info text-white">
 						<div class="card-body wallet_select" wallet_name="KOO COIN"  type="inr_bal"  style="color:black;padding:1.00rem !important;font-size: 18px;">
-						 KOO REWARD  RM <span id="inr_bal" style="color:red;font-weight:bold;"><?php if(isset($balance_inr)){ echo number_format($balance_inr,2);} ?></span>
+						 KOO COIN  RM <span id="inr_bal" style="color:red;font-weight:bold;"><?php if(isset($balance_inr)){ echo number_format($balance_inr,2);} ?></span>
 						 </div>
 						
 				   </div>
@@ -1734,7 +1673,7 @@ input[name='p_total[]'],input[name='p_price[]']{
 					  <div class="input-group-text" style="background-color:#51D2B7;border-radius: 5px 0 0 5px;height: 100%;padding: 0 10px;display: grid;align-content: center;">+60</div>
 					</div>
 					
-					<input  type="number" autocomplete="tel" maxlength='10' id="user_mobile" class="mobile_number form-control" <?php if($check_number){ echo "readonly";} ?> value="<?php if($check_number){ echo $check_number;}  ?>" placeholder="Phone number" name="mobile_number" required="" />
+					<input  type="number" autocomplete="tel" maxlength='10'  class="mobile_number form-control" <?php if($check_number){ echo "readonly";} ?> value="<?php if($check_number){ echo $check_number;}  ?>" placeholder="Phone number" name="mobile_number" required="" />
 				   
 				  </div>
 				  <small id="forgot_error" style="display: none;color:#e6614f;">
@@ -1782,7 +1721,7 @@ input[name='p_total[]'],input[name='p_price[]']{
   <script>
     // Start of DrakkoFire's code
     // Remark
-	   var varient_selected = [];
+    var varient_selected = [];
 	var already_login='<?php echo $login_user_id; ?>';
 	 
    var merchant_mobile=<?php echo $merchant_detail['mobile_number'];?>;
@@ -1802,6 +1741,7 @@ input[name='p_total[]'],input[name='p_price[]']{
     $('#remarks_area').on('click','.save_close', function (e) {
         var selected = [];
         var extras = [];
+        var quantity = $(this).parent().find("input[name='quantity_input']").val();
         $('div#remarks_area .btn-secondary.checkbox-checked.active').each(function() {
             selected.push($(this).children("input[name='ingredient']").val());
             val_extra = $.trim($(this).siblings(".extra-price-ingredient").html());
@@ -1809,7 +1749,7 @@ input[name='p_total[]'],input[name='p_price[]']{
               extras.push(val_extra);
             }
         });
-        console.log(extras);
+        // console.log(extras);
         if($("#remark_input").val() != ''){
           selected.push($("#remark_input").val().split(' ').join('_'));
         }
@@ -1818,12 +1758,21 @@ input[name='p_total[]'],input[name='p_price[]']{
           input_extras += parseFloat(extras[i]);
         }
         var id = $("#remarks_area").data("id");
+        var rid = $("#remarks_area").data("rid");
+		 var qty = $("#"+rid+"_test_athy").val();
+		 // var rebate_per = $("#"+rid+"rebate_per").val();
+		// alert(qty);
+		 var rebate_per = $("#"+rid+"rebate_per").val();
         // console.log(input_extras);
         // console.log(selected.toString().split("_").join(" "));
         var unitPrice = parseFloat($(".introduce-remarks.selected").parent().parent().find("input[name='p_price[]']").val());
+		var p_total=((input_extras + unitPrice)*qty).toFixed(2);
+		// alert(p_total);.
+		 var rebate_amount=rebatevalue(p_total,rebate_per);
+		  $("#"+rid+"rebate_amount").val(rebate_amount);
         // console.log(unitPrice);
         $(".introduce-remarks.selected").parent().parent().find("input[name='p_extra']").val(input_extras);
-        $(".introduce-remarks.selected").parent().parent().find("input[name='p_total[]']").val((input_extras + unitPrice < 0) ? 0 : (input_extras + unitPrice).toFixed(2));
+        $(".introduce-remarks.selected").parent().parent().find("input[name='p_total[]']").val((input_extras + unitPrice < 0) ? 0 : (p_total));
         $(".introduce-remarks.selected").siblings("input[name='extra']").val(extras);
         $("input[name='single_ingredients'].selected").siblings("input[name='extra']").val(extras);
         if(!$(".introduce-remarks.selected").parent().hasClass("pop_model")){
@@ -1836,22 +1785,23 @@ input[name='p_total[]'],input[name='p_price[]']{
         $("input[name='single_ingredients'].selected").val('').val(selected).removeClass("selected");
         if($("#remarks_area").hasClass("transaction")){
           if($("#remarks_area").hasClass("no-back")){
+            $("#pop_cart[data-id='" + id + "']").attr("data-quantity", quantity);
             $("#pop_cart[data-id='" + id + "']").click();
+            $(".text_add_cart[data-id='" + id + "']").closest(".quatity").val(quantity);
             $("#pop_cart").removeData("id");
             $("#remarks_area").removeClass("no-back");
           }else{
+            showModal = false;
             $(".text_add_cart[data-id='" + id + "']").click();
+            $("#pop_cart[data-id='" + id + "']").attr("data-quantity", quantity);
+            $("#pop_cart[data-id='" + id + "']").parent().find(".quatity").val(quantity);
+            $("#pop_cart[data-id='" + id + "']").click();
           }
 
-          // BUSCAME
-
           $("#remarks_area").removeData("id");
+          $("#remarks_area").modal("hide");
         }
     });
-	 $(".insufficient_close").click(function(e){
-		  $(this).removeClass(" btn-primary").addClass("btn-default");
-		  $("#LesaaAmountModel").modal("hide");
-	 });
     $(".manual_input").click(function(e){
 
       if($("#remark_input").attr("type") == "hidden"){
@@ -1900,39 +1850,63 @@ input[name='p_total[]'],input[name='p_price[]']{
       console.log(result_price);
     });
     $("body").on("click",".introduce-remarks", function(e){
-      $(this).addClass("selected");
-      if($(this).parent().parent().parent().parent().hasClass("element-item")){
-        var id = $(this).siblings("input[name='p_id']").val();
-        console.log(id);
-        $("#remarks_area").addClass("transaction").attr("data-id", id);
-      }
-      $("#ProductAdded").modal("hide");
-      $(this).parent().parent().find("input[name='ingredients']").addClass("selected");
-      $(this).parent().parent().find("input[name='single_ingredients']").addClass("selected");
-      var ingredients = $(this).parent().parent().find("input[name='ingredients']").val();
-      $("#remarks_area .modal-body .btn-group .btn-secondary").removeClass("checkbox-checked").removeClass("active");
-      e.preventDefault();
+		// alert(3);
+  		var rid=$(this).attr('rid');
+			// alert(rid);
+			$("#remarks_area").addClass("transaction").attr("data-rid",rid);
+		  $("#product_table .removevarient").each(function(){
+			var varient_name = $(this).data("name");
+			varient_selected.push(varient_name);
+		  });
+		  e.preventDefault();
+		  $(this).addClass("selected");
+		  if($(this).parent().parent().parent().parent().hasClass("element-item")){
+			var id = $(this).siblings("input[name='p_id']").val();
+			// alert(id);
+			$("#remarks_area").addClass("transaction").attr("data-id", id);
+			
+		  }
+		  if($(this).parent().is("td")){
+			$("#remarks_area").find("input[name='quantity_input']").parent().hide();
+		  }else{
+			$("#remarks_area").find("input[name='quantity_input']").parent().show();
+		  }
+		  var quantity = $(this).parent().find(".quatity").val();
+		  
+		  // alert(quantity);
+		  quantity = (quantity == null || quantity == undefined) ? $(this).siblings("#pop_cart").data("quantity") : quantity;
+		  $("#ProductAdded").modal("hide");
+		  $(this).parent().parent().find("input[name='ingredients']").addClass("selected");
+		  $(this).parent().parent().find("input[name='single_ingredients']").addClass("selected");
+		  var ingredients = $(this).parent().parent().find("input[name='ingredients']").val();
+		  $("#remarks_area .modal-body .btn-group .btn-secondary").removeClass("checkbox-checked").removeClass("active");
+		  console.log(quantity);
+		  $("#remarks_area .modal-footer input[name='quantity_input']").val(quantity);
+	
     });
 
     $(".modal-footer").on("click", ".introduce-remarks", function(){
       // alert(3);
-	  // alert(3);
-       // if($(this).parent().is("#without_varient_footer")){
-        
-      // } else {
-        // var varient_count = $(".removevarient").length;
-		
-        // if(varient_count < 1)
-        // {  
-            // $('#varient_error').show(); 
-            // return false;
-        // }
-      // }
+       if($(this).parent().is("#without_varient_footer")){
+        // do nothing
+      } else {
+        var varient_count = $(".removevarient").length;
+        if(varient_count < 1)
+        {  
+            $('#varient_error').show(); 
+            return false;
+        }
+      }
+      
+	  // var rid=$this.data('rid');
+	  // alert(rid);
       var single_remarks = $(this).parent().parent().find("input[name='single_ingredients']").val();
       var quantity = $(this).closest("form").find("input[name='quatity']").val();
+      quantity = (quantity == null || quantity == undefined) ? $(this).parent().find(".quatity").val() : quantity;
       var name = $(this).siblings("#pop_cart").data("name");
       var code = $(this).siblings("#pop_cart").data("code");
       var id = $(this).siblings("#pop_cart").data("id");
+	  // alert(id);
       var p_extra = $(this).siblings("input[name='extra']").val();
       $("#remarks_area").addClass("transaction").attr("data-id", id);
       $(this).siblings("input[name='single_ingredients']").addClass("selected")
@@ -1940,10 +1914,11 @@ input[name='p_total[]'],input[name='p_price[]']{
         $("#remarks_area").addClass("no-back");
       }
       $('#ProductModel').modal('hide');
+      $(".text_add_cart[data-id='" + id + "']").siblings('.quantity').children('.quatity').val(quantity);
       $(".text_add_cart[data-id='" + id + "']").parent().siblings(".introduce-remarks").click();
-      $(".modal_pop").html("<a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='single_ingredients' value='" + single_remarks + "'/><input type='hidden' name='extra' value='" + p_extra + "'/><span id='pop_cart' data-id='"+id+"' data-code='"+code+"'  data-name='"+name+"' data-quantity='"+quantity+"'>Add to Cart</span>");
+      $(".modal_pop").html("<a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='single_ingredients' value='" + single_remarks + "'/><input type='hidden' name='extra' value='" + p_extra + "'/><span id='pop_cart' data-id='"+id+"' data-code='"+code+"'  data-name='"+name+"' data-quantity='"+quantity+"'/>Add to Cart</span>");
       return false;
-    })
+    });
 
     // Remark
     //  product varient feature 
@@ -1963,7 +1938,7 @@ input[name='p_total[]'],input[name='p_price[]']{
     document.getElementById(child_id).classList.remove("fa-plus");
     var code = $(this).data("code");
     var p_price = $(this).data("pr");
-	 var rebate = $(this).data("rebate");
+    var rebate = $(this).data("rebate");
     var name = $(this).data("name");
     console.log("Price extra: " + p_extra);
     var extra_price = 0;
@@ -1983,15 +1958,17 @@ input[name='p_total[]'],input[name='p_price[]']{
     var p_total=p_total.toFixed(2);
 
     // alert(p_total);
-	  $("#without_varient_footer").html("<a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal' style='top:unset;bottom:3px;right:100px;border-radius: 5px;'>Remarks</a><input type='hidden' name='single_ingredients' value='" + single_remarks + "'/><input type='hidden' name='extra' value='" + extra_price + "'/><span id='pop_cart' data-rebate='"+rebate+"' data-id='"+id+"' data-code='"+code+"'  data-name='"+name+"' data-quantity='"+quantity+"' data-pr=" + p_price + " class='close_pop btn btn-large btn-primary' data-dismiss='modal' style='background:#50D2B7;border:none;'>Ok</span>");
-   
-   // $("#without_varient_footer").html("<a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal' style='top:unset;bottom:3px;right:100px;border-radius: 5px;'>Remarks</a><input type='hidden' name='single_ingredients' value='" + single_remarks + "'/><input type='hidden' name='extra' value='" + extra_price + "'/><span id='pop_cart' data-id='"+id+"' data-code='"+code+"'  data-name='"+name+"' data-quantity='"+quantity+"' data-pr=" + p_price + " class='close_pop btn btn-large btn-primary' data-dismiss='modal' style='background:#50D2B7;border:none;'>Ok</span>");
+    $("#without_varient_footer").html("<div class='row'><div class='col-md-12'>Quantity: <input name='quantity_input' type='number' class='quatity' value='" + quantity + "' style='width:2em;text-align:center' min='0' max='99'/></div></div><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal' style='top:unset;bottom:3px;right:100px;border-radius: 5px;'>Remarks</a><input type='hidden' name='single_ingredients' value='" + single_remarks + "'/><input type='hidden' name='extra' value='" + extra_price + "'/><span id='pop_cart' data-rebate='"+rebate+"' data-id='"+id+"' data-code='"+code+"'  data-name='"+name+"' data-quantity='"+quantity+"' data-pr=" + p_price + " class='close_pop btn btn-large btn-primary' data-dismiss='modal' style='background:#50D2B7;border:none;'>Ok</span>");
     // $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input style='width:50px;'  onchange='UpdateTotal("+id+" ,"+p_price+")'  type=number name='qty[]' maxlength='3' class='product_qty'  value="+quantity+" id='"+id+"_test_athy'><input type= hidden name='p_id[]' value= "+id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients' value='" + single_remarks + "'/></td><td>"+code+"</td><td><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>" + ((single_remarks == '') ? "Remarks" : single_remarks) +  "</a><input type='hidden' name='extra' value='"+extra_price+"'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='" + extra_price.toFixed(2) + "' readonly></td><td><input style='width:70px;' type='text' name='p_price[]' value= "+p_price.toFixed(2)+" readonly></td><td><input type='text' style='width:70px;' name='p_total[]' value= " + p_total + " readonly  id='"+id+"_cat_total'><input type='hidden' name='varient_type[]' value=''></td> </tr>");
     document.getElementById(child_id).classList.add("fa-check");
      document.getElementById(product_child_id).style.backgroundColor = "red";
             // alert('The product added');
     $('#pop_ok').val(id);
-    $("#ProductAdded").modal("show");
+    if (showModal) {
+      $("#ProductAdded").modal("show");
+    }else{
+      showModal = true;
+    }
      document.getElementById(child_id).classList.add("fa-plus");
      document.getElementById(child_id).classList.remove("fa-check");   
      document.getElementById(product_child_id).style.backgroundColor = "#50d2b7";
@@ -2002,7 +1979,13 @@ input[name='p_total[]'],input[name='p_price[]']{
         // $("input[name='single_ingredients']").val('');
     
    });  
-   $(".with_varient").on("click", function(){
+
+   $("#without_varient_footer").on("change", "input[name='quantity_input']", function(){
+      var newQuantity = $(this).val();
+      $(this).parent().parent().parent().find("#pop_cart").attr("data-quantity", newQuantity);
+   });
+
+  $(".with_varient").on("click", function(){
     // $(this).hide();
 	// alert(4);  
     var p_price = $(this).data("pr");
@@ -2018,7 +2001,6 @@ input[name='p_total[]'],input[name='p_price[]']{
     var subproduct_selected = '';
     var single_remarks = $(this).parent().parent().find("input[name='single_ingredients']").val();
     var p_extra = $(this).parent().parent().find("input[name='extra']").val();
-	// alert(p_extra);
      document.getElementById(child_id).classList.remove("fa-plus");
      document.getElementById(child_id).classList.add("fa-check");
      document.getElementById(product_child_id).style.backgroundColor = "red";
@@ -2035,7 +2017,7 @@ input[name='p_total[]'],input[name='p_price[]']{
        $("#pr_total").html("<b>"+p_total+"</b>");
        $("#remark_td").html((single_remarks == '') ? "" : single_remarks.toString().split("_").join(" "));
       // $("#product_info").html("<p>"+name+": Rm "+p_total+"</p>");
-      $(".pop_model").html("<div class='row' style='width:11em'></div><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='single_ingredients' value='" + single_remarks + "'/><input type='hidden' name='extra' value='" + p_extra + "'/><span id='pop_cart' data-rebate='"+rebate+"' data-pr=" + p_price + " data-id='"+id+"' data-code='"+code+"'  data-name='"+name+"' data-quantity='"+quantity+"'>Add to Cart</span>");
+      $(".pop_model").html("<div class='row' style='width:11em'><div class='col-md-12'>Quantity: <input name='quantity_input' type='number' class='quatity' value='1' style='width:2em;text-align:center' min='0' max='99'></div></div><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='single_ingredients' value='" + single_remarks + "'/><input type='hidden' name='extra' value='" + p_extra + "'/><span id='pop_cart' data-rebate='"+rebate+"' data-pr=" + p_price + " data-id='"+id+"' data-code='"+code+"'  data-name='"+name+"' data-quantity='"+quantity+"'>Add to Cart</span>");
         
 
       for(var i = 0; i < subproducts_global.length; i++){
@@ -2117,10 +2099,8 @@ input[name='p_total[]'],input[name='p_price[]']{
     // alert(content);
      var link = document.getElementById(c_id);
     link.style.display = 'none'; //or
-	var show_label=""+name+" (Rm "+p_price+")";
-	// alert(show_label);
      // $("#product_info").append(content); 
-         $("#product_table").append("<tr><td> &nbsp;&nbsp;<button data-id="+id+" data-name="+name+" data-pr="+p_price+" type='button' class='removevarient'><i class='fa fa-remove'></i></button>-<span show_label='"+show_label+"' class='sub_pro_name'>"+name+"</span></td><td> "+p_price+" </td></tr>");       
+         $("#product_table").append("<tr><td> &nbsp;&nbsp;<button data-id="+id+" data-name="+name+" data-pr="+p_price+" type='button' class='removevarient'><i class='fa fa-remove'></i></button>-"+name+" </td><td> "+p_price+" </td></tr>");       
      content='';
   });
   $(document).on("click", '.removevarient', function(event) { 
@@ -2153,42 +2133,35 @@ input[name='p_total[]'],input[name='p_price[]']{
     jQuery(this).closest('tr').remove();
     
   });
-   $(document).on("click", '#pop_cart', function(event) {   
+  $(document).on("click", '#pop_cart', function(event) {   
    // alert(3);
    var varient_must=$('#varient_must').val();
    var go_ahead="y";
+   // alert(varient_must);
+   // alert(go_ahead);
    if(varient_must=="y")
    {
      var varient_count=$('#varient_count').val(); 
-     // if(varient_count>0)
-     // {
+	
+     if(varient_count>0)
+     {
       
-     // }
-     // else
-     // {  
-       // var go_ahead="n";
-       // $('#varient_error').show(); 
-     // }
-	  if($(this).parent().is("#without_varient_footer")){
-        // do nothing
-      } else {
-        var varient_count = $(".removevarient").length;
-		// alert(varient_count);
-        if(varient_count < 1)
-        {  
-            $('#varient_error').show(); 
-            return false;
-        }
-      }
+     }
+     else
+     {  
+       var go_ahead="n";
+       $('#varient_error').show(); 
+     }
    }
    else   
    {
     var go_ahead="y";
    }
+   // $('#varient_count').val(0);
    if(go_ahead=="y")
    {
+    if(lastAdd == null || lastAdd.getTime() - new Date().getTime() < -1300){
     var select_varient=$('#select_varient').val();
-    //var p_price = $(this).data("pr");
     var p_price = $(this).data("pr");
     var single_remarks = $(this).siblings("input[name='single_ingredients']").val();
     var p_extra = $(this).siblings("input[name='extra']").val();
@@ -2196,23 +2169,14 @@ input[name='p_total[]'],input[name='p_price[]']{
      $(".element-item input[name='extra']").val('');
       $("#ProductModel").modal("hide");
       var sub_str=$("#varient").html();
-	   var sub_count = $(".sub_pro_name").length;
-         var f_html='';
-      var f_html=$(".sub_pro_name")
-  .map(function() {
-    return $(this).attr('show_label');    
-  })
-  .get()  
-  .join("</br>-");
-	 if(sub_count>0)
-      var name=$(this).data("name")+"</br>-"+f_html;
-	else
-	var name=$(this).data("name");
+      var name=$(this).data("name")+sub_str;
       var id=$(this).data("id");
-	  var rebate_per=$(this).data("rebate");
+      var rebate_per=$(this).data("rebate");
+	  // alert(rebate_per);
       var child_id="child_"+id;
       var product_child_id="product_child_"+id;
       var extra_price = 0;
+      
       if(p_extra == ''){
         p_extra = 0;
       }else{
@@ -2223,27 +2187,35 @@ input[name='p_total[]'],input[name='p_price[]']{
       }
       var p_pop_price = $("#p_pop_price").val();
       var product_price = (p_pop_price == "" || !p_pop_price) ? parseFloat($(this).data("pr")) : parseFloat(p_pop_price);
-      var p_total = (product_price + extra_price).toFixed(2);
-	   var rebate_amount=rebatevalue(p_total,rebate_per);  
+      // var p_total = parseFloat() + extra_price;
+      var quantity=$(this).data("quantity");
+      var p_total = (product_price + extra_price).toFixed(2) * parseInt(quantity);
+	  var rebate_amount=rebatevalue(p_total,rebate_per);
+	  // alert(rebate_amount);
       $("#p_pop_price").val("");
-	  // alert(rebate_amount);  
       console.log(p_price);
       console.log(p_extra);
       console.log(p_total);
-      var quantity=$(this).data("quantity");
       var code=$(this).data("code");
       document.getElementById(child_id).classList.add("fa-plus");
       document.getElementById(child_id).classList.remove("fa-check");
       document.getElementById(product_child_id).style.backgroundColor = "#50d2b7";
       var varient_type=$("#varient_type").html();
-      // alert(varient_type); 
-      $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input type='hidden' name='rebate_amount[]' class='rebate_amount' value="+rebate_amount+" id='"+id+"rebate_amount'><input type='hidden' name='rebate_per[]' value="+rebate_per+" id='"+id+"rebate_per'><input style='width:50px;'  onchange='UpdateTotal("+id+" ,"+product_price+")'  type=number name='qty[]' min='1' maxlength='3' class='product_qty'  value="+quantity+" id='"+id+"_test_athy'><input type= hidden name='p_id[]' value= "+id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients' value='" + single_remarks + "'/></td><td>"+code+"</td><td><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>" + ((single_remarks == '') ? "Remarks" : single_remarks) +  "</a><input type='hidden' name='extra' value='"+extra_price+"'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='" + extra_price.toFixed(2) + "' readonly></td><td><input style='width:70px;' type='text' name='p_price[]' value='"+product_price+"' readonly></td><td><input type='text' style='width:70px;' class='p_total' name='p_total[]' value= "+ p_total + " readonly  id='"+id+"_cat_total'><input type='hidden' name='varient_type[]' value="+varient_type+"></td> </tr>");
+      // alert(varient_type);
+        $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input type='hidden' name='rebate_amount[]' class='rebate_amount' value="+rebate_amount+" id='"+id+"rebate_amount'><input type='hidden' name='rebate_per[]' value="+rebate_per+" id='"+id+"rebate_per'><input style='width:50px;'  onchange='UpdateTotal("+id+" ,"+p_price+")'  type=number name='qty[]' maxlength='3' class='product_qty'  value="+quantity+" id='"+id+"_test_athy'><input type= hidden name='p_id[]' value= "+id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden'  name='ingredients' value='" + single_remarks + "'/></td><td>"+code+"</td><td><a href='#remarks_area' rid='"+id+"' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>" + ((single_remarks == '') ? "Remarks" : single_remarks) +  "</a><input type='hidden' name='extra' value='"+extra_price+"'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='" + extra_price.toFixed(2) + "' readonly></td><td><input style='width:70px;' type='text' name='p_price[]' value='"+p_price+"' readonly></td><td><input type='text' style='width:70px;'  class='p_total' name='p_total[]' value= "+ p_total + " readonly  id='"+id+"_cat_total'><input type='hidden' name='varient_type[]' value="+varient_type+"></td> </tr>");
+        lastAdd = new Date();
+		// $("#varient_count").val(0);
+      }
+	  // $('#varient_count').val(0);
       // alert('The product added');
+      $(".quatity").val(1);
+      // $(this).siblings(".quantity").children("input.quatity").val("1");
       $("#varient_type").html('');   
       $("#varient").html('');  
    }
    else
    {
+	   // alert('errror to add');
     $('#varient_error').show();
    }
    
@@ -2255,7 +2227,7 @@ input[name='p_total[]'],input[name='p_price[]']{
         scrollTop: $("#cartsection").offset().top},
         'slow');  
            
-    $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td><input style='width:120px;' type=text  id='other_product_name_"+other_product_id+"' class='other_product_name'><input type='hidden' name='p_id[]' id='other_product_id_"+other_product_id+"'></td> <td><input style='width:50px;' onchange='UpdateTotalCart("+other_product_id+")' id='other_qty_"+other_product_id+"' type=number name='qty[]' min='1' class='product_qty' value='1'></td> <td><input class='other_product_code' style='width:70px;' type= text name='p_code[]' id='other_product_code_"+other_product_id+"'><input type='hidden' name='ingredients'/></td><td> <a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='extra'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='0' readonly></td><td><input style='width:70px;' id='other_product_price_"+other_product_id+"' type='text' name='p_price[]' readonly></td><td><input type='text' style='width:70px;' name='p_total[]' readonly  id='"+other_product_id+"_cat_total'></td></tr>");
+    $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td><input style='width:120px;' type=text  id='other_product_name_"+other_product_id+"' class='other_product_name'><input type='hidden' name='p_id[]' id='other_product_id_"+other_product_id+"'></td> <td><input style='width:50px;' onchange='UpdateTotalCart("+other_product_id+")' id='other_qty_"+other_product_id+"' type=number name='qty[]' class='product_qty' value='1'></td> <td><input class='other_product_code' style='width:70px;' type= text name='p_code[]' id='other_product_code_"+other_product_id+"'><input type='hidden' name='ingredients'/></td><td> <a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='extra'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='0' readonly></td><td><input style='width:70px;' id='other_product_price_"+other_product_id+"' type='text' name='p_price[]' readonly></td><td><input type='text' style='width:70px;' name='p_total[]' readonly  id='"+other_product_id+"_cat_total'></td></tr>");
       if(merchant_mobile!="60172669613")
   { 
    var focus_id="other_product_code_"+other_product_id;
@@ -2452,7 +2424,9 @@ input[name='p_total[]'],input[name='p_price[]']{
   });
   
      jQuery(document).on('click', 'button.removebutton', function () {
-         alert("Product has Removed");
+         // alert("Product has Removed");
+		 $('#show_msg').html("Product has Removed");
+			 $('#AlerModel').modal('show');
          jQuery(this).closest('tr').remove();
          return false;
      });
@@ -2763,7 +2737,7 @@ $('.master_category_filter').on( 'click', function(e) {
         var quantity = $(this).closest("form").find("input[name='quatity']").val();
         var single_remarks = $(this).parent().parent().find("input[name='single_ingredients']").val();
         var p_total = p_price*quantity;
-      p_total = p_total.toFixed(2);
+        p_total = p_total.toFixed(2);
         
         $("#p_pop_price").val(p_total);  
          $("#product_table").append("<tr><td> "+name+" </td><td> "+p_total+" </td></tr>");  
@@ -2780,7 +2754,6 @@ $('.master_category_filter').on( 'click', function(e) {
           }
         }
       }
-      console.log(subproduct_selected);
       var exists_in_subproducts = false;
       for(var i = 0; i < subproduct_selected.length; i++){
         if(subproduct_selected[i]['product_id'] == id){
@@ -2798,18 +2771,16 @@ $('.master_category_filter').on( 'click', function(e) {
           content +="<span aria-hidden='true'><i class='fa fa-plus'></i></span>";
           content +="</button><span class='ingredient-name'>"+subproduct_selected[i]['name']+" &nbsp; Price Rm "+subproduct_selected[i]['product_price']+"</span></div>";
           console.log(content);
-          
         }
 
         $("#product_main").html(content);
         $("#ProductModel").modal("show");
 
-      }
-        
+      }        
       });
                 
-             }
-         });
+     }
+ });
     
      var data = {type:"mainclick",method:"getNoneImageProduct", id: <?php echo $id;?>, category: position_value};
         $.ajax({
@@ -2860,15 +2831,13 @@ $('.master_category_filter').on( 'click', function(e) {
 
     $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input style='width:50px;' maxlength='3'  onchange='UpdateTotal("+id+" ,"+p_price+")'  type=number name='qty[]' class='product_qty' value="+quantity+" id='"+id+"_test_athy'><input type= hidden name='p_id[]' value= "+id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients'/></td><td>"+code+"</td><td><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='extra'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='0' readonly></td>  <td><input style='width:70px;' type='text' name='p_price[]' value= "+p_price+" readonly></td><td><input type='text' style='width:70px;' name='p_total[]' value= "+p_total+" readonly  id='"+id+"_cat_total'></td> </tr>");
     alert('The product added');
-  }); 
+  });
                 
              }
          });
      }
   
 });
-
-
 $('.sub_category_grid .category_filter button').on( 'click',function() {
       var filterValue = $(this).attr('data-filter');
       var subcateg_show = $(this).data("subcategory");
@@ -2959,10 +2928,14 @@ img.make_bigger {
 
 <script>
 $(document).ready(function(){
-   $('#test').html();
    var already_login='<?php echo $login_user_id; ?>';
 	
   var location_order='<?php echo $location_order; ?>';
+  if(already_login)
+	{
+		// alert(3);
+		// $('#with_wallet_span').html('Rebate amount');
+	}  
   var shop_status=$('#shop_status').val();
   if(location_order==1)
   {
@@ -3027,10 +3000,7 @@ $(document).ready(function(){
     // });
 
 
-    $('#confmpayment').click(function(){
-       $('#order_place').attr('action', 'order_place.php');
-       
-    });
+    
     $("body").on("click","#login_passwd", function(e){
       var phone_num = $(this).parent().parent().find("input[name='mobile_number']").val();
       $("#login_phone_number").val("+60" + phone_num);
@@ -3106,7 +3076,7 @@ $(document).ready(function(){
           mobile_phone: phone_num,
           password: passwd
         }, function(data,result){
-          
+          $('#with_wallet').hide();
           console.log("Data:");
           console.log(data);
           var status_code = (data == "logged-in") ? 4 : (data == "acc-locked") ? 3 : (data == "reg_pending") ? 2 : (data == 1) ? 1 : 0 ;
@@ -3240,7 +3210,7 @@ $(document).ready(function(){
         var p_total = p_price*quantity;
         p_total = p_total.toFixed(2);
         
-        $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input style='width:50px;'  onchange='UpdateTotal("+id+" ,"+p_price+")'  type=number name='qty[]'  min='1' class='product_qty' maxlength='3'  value="+quantity+" id='"+id+"_test_athy'><input type= hidden name='p_id[]' value= "+id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients'/></td><td>"+code+"</td><td><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='extra' value='" + p_extra + "'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='0' readonly></td>  <td><input style='width:70px;' type='text' name='p_price[]' value= "+p_price+" readonly></td><td><input type='text' style='width:70px;' name='p_total[]' value= "+p_total+" readonly  id='"+id+"_cat_total'></td> </tr>");
+        $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input style='width:50px;'  onchange='UpdateTotal("+id+" ,"+p_price+")'  type=number name='qty[]' class='product_qty' maxlength='3'  value="+quantity+" id='"+id+"_test_athy'><input  type= hidden name='p_id[]' value= "+id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients'/></td><td>"+code+"</td><td><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='extra' value='" + p_extra + "'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='0' readonly></td>  <td><input style='width:70px;' type='text' name='p_price[]' value= "+p_price+" readonly></td><td><input type='text' style='width:70px;' class='p_total' name='p_total[]' value= "+p_total+" readonly  id='"+id+"_cat_total'></td> </tr>");
         alert('The product added');
       });
                 
@@ -3292,7 +3262,7 @@ $(document).ready(function(){
     var p_total = p_price *quantity ;
     p_total = p_total.toFixed(2);
 
-    $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input style='width:50px;' maxlength='3'  onchange='UpdateTotal("+id+" ,"+p_price+")' min='1'  type=number name='qty[]' class='product_qty' value="+quantity+" id='"+id+"_test_athy'><input type= hidden name='p_id[]' value= "+id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients'/></td><td>"+code+"</td><td><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='extra'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='0' readonly></td>  <td><input style='width:70px;' type='text' name='p_price[]' value= "+p_price+" readonly></td><td><input type='text' style='width:70px;' name='p_total[]' value= "+p_total+" readonly  id='"+id+"_cat_total'></td> </tr>");
+    $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input style='width:50px;' maxlength='3'  onchange='UpdateTotal("+id+" ,"+p_price+")'  type=number name='qty[]' class='product_qty' value="+quantity+" id='"+id+"_test_athy'><input  type= hidden name='p_id[]'  value= "+id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients'/></td><td>"+code+"</td><td><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='extra'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='0' readonly></td>  <td><input style='width:70px;' type='text' name='p_price[]' value= "+p_price+" readonly></td><td><input type='text' style='width:70px;' class='p_total' name='p_total[]'  value= "+p_total+" readonly  id='"+id+"_cat_total'></td> </tr>");
     alert('The product added');
   });
                 
@@ -3301,9 +3271,6 @@ $(document).ready(function(){
     });
 	$("#confm").click(function(e){
 		 var product_qty=$('.product_qty').val();
-		 var table_type=$('#table_type').val();
-		 var number=$('#mobile_number').val();
-		
 		 var total_rebate=0;
 		 var total_amount=0;
 		var s_flag=true;
@@ -3313,44 +3280,17 @@ $(document).ready(function(){
 			 $('#AlerModel').modal('show');
 			
 			var s_flag=false;
-			return false;  
+			return false;
 		  }
-		  if(number.length >= 9 && number.length <= 10 && number[0] == 1){
-		  }
-		  else
-		  {
-			   var s_flag=false;
-		  }
-		  if($('#table_type').prop('required')){
-			  if(table_type=='')
-			  var s_flag=false;
-			  // return false;
-		  }
-		  
 		   if(s_flag)
 		   {
-			    $(".rebate_amount").each(function(){
-				   // var total_rebate+= $(this).val();
-				   total_rebate += parseFloat($(this).val());
-			   });
-			   $(".p_total").each(function(){
-				   // var total_rebate+= $(this).val();
-				   total_amount += parseFloat($(this).val());
-			   });
-			   var total_amount=total_amount.toFixed(2);
-			     var total_rebate=total_rebate.toFixed(2);
-			   $('#total_rebate_amount').val(total_rebate);
-			   $('#total_cart_amount').val(total_amount);
-			   $('#total_cart_amount_label').html(total_amount);
 				$('input[type=submit]', this).attr('disabled', 'disabled');
-				$(this).removeClass(" btn-primary").addClass("btn-default");
+				// $(this).removeClass(" btn-primary").addClass("btn-default");
 		   }
 	});
-
   // $('form').submit(function(){
     // $('input[type=submit]', this).attr('disabled', 'disabled');
 // });
-
   // $('#order_place').submit(function () {
     // var product_qty=$('.product_qty').val();
     // var s_flag=true;
@@ -3363,7 +3303,7 @@ $(document).ready(function(){
       // if(s_flag)
       // $('input[type=submit]', this).attr('disabled', 'disabled');
         // });
-	// code for rebeat process by mayank 
+    // code for rebeat process by mayank 
 	  $(".login_ajax").click(function(){
 		   // $(this).removeClass(" btn-primary").addClass("btn-default");
 		 // setTimeout(function() {
@@ -3422,15 +3362,14 @@ $(document).ready(function(){
          $(this).removeClass("btn-default").addClass("btn-primary");
 			}.bind(this), 5000);
 		   var usermobile=$("#user_mobile").val();
-		   // alert(usermobile);
-		   var data = {usermobile:usermobile,method:"forgotpass2"};
+		   var data = {usermobile:usermobile,method:"forgotpass"};
 			// alert(data);
 			$.ajax({
 			  
 			  url :'functions.php',
 			  type:'POST',
 			  dataType : 'json',
-			  data:data,  
+			  data:data,
 			  success:function(response){
 				  var data = JSON.parse(JSON.stringify(response));
 				  // alert(data.status);
@@ -3455,18 +3394,15 @@ $(document).ready(function(){
 		  });
 	   });
 		$(".forgot_pass").click(function(){
-				$('#with_wallet').hide();
-				$('#without_wallet').hide();
-				$('.login_passwd_field').hide();
+			  $('.login_passwd_field').hide();
 			   $(".join_now").hide();
 			   $(".forgot_reset").show();
 			   $(".forgot_now").show();
 			  $('.forgot-form').show();
 		  });  
-		  $(".online_pay").click(function(e){
+		$(".online_pay").click(function(e){
 		 var product_qty=$('.product_qty').val();
-		  var table_type=$('#table_type').val();
-		 var number=$('#mobile_number').val();
+		 
 		 var total_rebate=0;
 		 var total_amount=0;
 		var s_flag=true;
@@ -3474,22 +3410,10 @@ $(document).ready(function(){
 			// alert('Without Prouct add cant able to go ahead.');
 			$('#show_msg').html("Without Prouct add cant able to go ahead");
 			 $('#AlerModel').modal('show');
-			
 			var s_flag=false;
-			return false;  
+			return false;
 		  }
-		  if(number.length >= 9 && number.length <= 10 && number[0] == 1){
-		  }
-		  else
-		  {
-			   var s_flag=false;
-		  }
-		  if($('#table_type').prop('required')){
-			  if(table_type=='')
-			  var s_flag=false;
-			  // return false;
-		  }
-		     
+		
 		  if(s_flag)
 		  {
 			 
@@ -3502,11 +3426,9 @@ $(document).ready(function(){
 				   // var total_rebate+= $(this).val();
 				   total_amount += parseFloat($(this).val());
 			   });
-			   // alert(total_rebate);
 			   var total_amount=total_amount.toFixed(2);
 			   if(total_rebate>0)
 			   {
-				   $('#without_wallet').hide();
 				   // if(total_rebate>10)
 				   // {
 					   // var total_rebate=10;
@@ -3522,7 +3444,6 @@ $(document).ready(function(){
 			   }
 			   else
 			   {
-				   $('#with_wallet').hide();
 					if(!already_login)
 					{  
 						$('#without_wallet').show();
@@ -3569,10 +3490,8 @@ $(document).ready(function(){
 						}
 						else
 						{
-							$('#WalletModel').modal('show');
 							$("#order_place").submit();
-							
-							// alert('Wallet Feature is Only Applicale for Register Member,We are Processing as Cash Wallet');
+							alert('Wallet Feature is Only Applicale for Register Member,We are Processing as Cash Wallet');
 							
 						}
 						
@@ -3604,7 +3523,7 @@ $(document).ready(function(){
 		  $('input[type=submit]', this).attr('disabled', 'disabled');
 		
 	 });
-	 $(".wallet_select").click(function(){
+	  $(".wallet_select").click(function(){
 			var type = $(this).attr('type');
 			var w_bal =0;
 			// alert(type);
@@ -3629,17 +3548,12 @@ $(document).ready(function(){
 				else 
 				p_bal=w_bal;	
 			   var p_bal=parseFloat(p_bal);
-			   	var total_amount=$('#total_cart_amount').val();
-				
-				if(p_bal>total_amount)    
-					var p_bal=total_amount;
-				// alert()
 			   p_bal = (parseInt(p_bal * 10)/10).toFixed(2);
-			   
+			 
 				$('#wallet_payment_label').show();
 				//$('#bal_payment_label').show();
 			   $('#wallet_payment_label').html("Paying By Wallet Rm: <span style='color:black;font-weight:bold;'>"+p_bal+"</span></br>");
-			
+				var total_amount=$('#total_cart_amount').val();
 				var rebate_amount=$('#total_rebate_amount').val();
 				var merchant_id='<?php echo $id; ?>';
 				var selected_wallet_bal=$('#selected_wallet_bal').val();
@@ -3755,7 +3669,6 @@ $(document).ready(function(){
 		
 	});
 	// end for rebaeat process
-  
 });
    function  walletstep()
 	{
@@ -3933,10 +3846,13 @@ var chat_appid = '52013';
 <script>
 function UpdateTotal(id=0 , uprice= 0){
   var qty = $("#"+id+"_test_athy").val();
+  var rebate_per = $("#"+id+"rebate_per").val();
   // var extra = $("#"+id+"_test_athy").parent().parent().find("input[name='p_extra']").val().parseInt();
   //alert(qty);
   //alert(qty);
   var total =  parseFloat(Number(qty*uprice).toFixed(2));
+  var rebate_amount=rebatevalue(total,rebate_per);
+  $("#"+id+"rebate_amount").val(rebate_amount);
   $("#"+id+"_cat_total").val(total);
 }
 function UpdateTotalCart(id=0){
@@ -4002,5 +3918,3 @@ $('.section-dropdown').on('change', function(e) {
             });
         });
     </script>
-
-

@@ -8,7 +8,6 @@ if(!isset($_SESSION['login']))
 $profile_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$_SESSION['login']."'"));
 // print_R($profile_data);
 // die;
-$user_roles=$profile_data['user_roles'];
 if($profile_data['user_roles']==5)
 {
 	$loginidset=$profile_data['parentid'];
@@ -1478,10 +1477,10 @@ function getcust_name()
                                     </tr>
 
                                      <tr>
-                                        <td class="<?php if($user_roles==2){ echo "show_cal";} ?>" style="padding: 5px 10px; border-top: 1px solid #666; border-bottom: 1px solid #5f5e7d; font-weight:bold; background:#5f5e7d; color:#FFF;" colspan="2">
+                                        <td class="show_cal" style="padding: 5px 10px; border-top: 1px solid #666; border-bottom: 1px solid #5f5e7d; font-weight:bold; background:#5f5e7d; color:#FFF;" colspan="2">
                                             Payment :</td>
                                         <td class="text-right" style="padding:5px 10px 5px 10px; font-size: 14px;border-top: 1px solid #666; border-bottom: 1px solid #5f5e7d; font-weight:bold; background:#5f5e7d; color:#FFF;" colspan="2">
-                                            <span id="Payment" style="padding:7%;font-size:22px;" class="<?php if($user_roles==2){ echo "show_cal";} ?> btn btn-success btn-block">RM 0.00</span>
+                                            <span id="Payment" style="padding:7%;" class="show_cal btn btn-success btn-block">RM 0.00</span>
                                         </td>
                                     </tr>
                                      <tr>
@@ -1589,7 +1588,7 @@ function getcust_name()
                         </div>
 
                     </div>
-                  
+                    </form> 
                     <?php
                     //vandhu
 
@@ -1645,29 +1644,15 @@ function getcust_name()
                                                  <input type="hidden" name="tol_mnt3" id="tol_mnt1" value="">
                                             </div>
 
-                                           
+                                            <div style="padding-top: 5px;font-weight:bold;display: flex;" class="input-has-value">
+                                                <span style="font-size:20px; width: 40%;    border: 1px solid; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid</span>
+                                                <input type="text" id="paid3" value="0" class="amount" name="paid" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
+                                            </div>
 											 <div style="padding-top: 5px;font-weight:bold;display: flex;" class="input-has-value">
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Discount</span>
                                                 <input type="text" id="discount3" value="0" class="amount" name="discount" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
-											<div style="padding-top: 5px;font-weight:bold;display: flex;" class="input-has-value">
-											    <select class="form-control" name="select_wallet" style="font-size:18px;">
-												<option value='-1'> Select Wallet</option>
-												<option  value='wechat'>Wechat</option>
-												<option  value='boostpay'>Boost Pay</option>
-												<option  value='grabpay'>Grab Pay</option>
-												<option  value='touch'>Touch & Go</option>
-												<option  value='fpx'>FPX</option>
-												</select>
-                                               
-												
-                                                <input type="text" id="wallet_paid" value="0" class="amount" name="wallet_paid_amount" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
-                                            </div>
-											 <div style="padding-top: 5px;font-weight:bold;display: flex;" class="input-has-value">
-                                                <span style="font-size:20px; width: 40%;    border: 1px solid; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Cash Paid</span>
-                                                <input type="text" id="paid3" value="0" class="amount" name="paid" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
-                                            </div>
-											 
+											
                                             <div style="padding-top: 5px;font-weight:bold;display: flex;">
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid;border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Change</span>
                                                 <input type="text" id="change3" name="change" class="amount" style=" font-size: 20px; width: 37%;margin-left: 23%; border: 1px solid #555555;padding-left: 4px;">
@@ -1729,7 +1714,6 @@ function getcust_name()
                             
                                         </div>
 			  </div>
-			    </form> 
 			</div>
 			 
               
@@ -1740,10 +1724,10 @@ function getcust_name()
 					 <style type="text/css">
 				   .fixside
 				   {
-						    position: fixed;
+						position: fixed;
 						bottom: 0;
-						right: 7%;
-						top: 14%;
+						right:2%;
+						top: 30%;
 						width: auto;
 						max-width: 800px;
 						height: 600px;
@@ -2638,85 +2622,77 @@ function getcust_name()
 	});
 	$('.pay_submit').click(function() {
 		 $("input.pay_submit").prop("disabled",false);
-		 $('#status').val(1);
+		 $('#status').val(1);  
       document.getElementById("pos-sale-form").submit();		
 	});
 	$('.num3').click(function() { 
                     // alert(2);
                        var mb = $('#viewer3').text();
 					  // alert(mb);
+					  
+
                      $('#paid3').val(mb);
-                   var dis_num =$("#discount3").val();
-		    var tol = document.getElementById("total_amount3").innerText;
-			var paid3=mb;
-			var paidkoocoin=$("#wallet_paid").val();
-			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
-			  var mb = $('#viewer3').text();
-		// alert(mb);
-		    		  // var final = parseFloat(tol)-parseFloat(total_paid);
-		    		  // var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
-		    		  var final =(parseFloat(paid3)+parseFloat(paidkoocoin))-(parseFloat(tol)+parseFloat(dis_num));
-                var value = Math.abs(final);
+                      var paid3=$('#paid3').val();
+                     var tol = document.getElementById("total_amount3").innerText;
+					 // alert(paid3);
+				    $('#paid_amount_pos').val(paid3);
+                      var final = parseFloat(tol)-parseFloat(mb);
+                      var value = Math.abs(final);
                       var v = value.toFixed(2);
+					  // alert(v);
+                      $('#change_pos').val(v);
                       $('#change3').val(v);
-		$('#paid_amount_pos').val(paid3);
-		$('#change_pos').val(v);
-		$('#discount_amount').val(dis_num);
+                      
+                       var tol_qty = document.getElementById("total_qty3").innerText;
+                      // alert(tol_qty);
+                    
+                        $('#total_qty3').val(tol_qty);
+                        $('#total_amount3').val(tol);
+						
+
+
                     });
 	 $("#discount3").on("keyup", function(){
-		   var dis_num =$("#discount3").val();
-		    var tol = document.getElementById("total_amount3").innerText;
-			var paid3=$('#paid3').val();
-			var paidkoocoin=$("#wallet_paid").val();
-			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
-			  var mb = $('#viewer3').text();
-		// alert(mb);
-		    		  // var final = parseFloat(tol)-parseFloat(total_paid);
-		    		  // var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
-		    		  var final =(parseFloat(paid3)+parseFloat(paidkoocoin))-(parseFloat(tol)+parseFloat(dis_num));
-                var value = Math.abs(final);
-                      var v = value.toFixed(2);
-                      $('#change3').val(v);
-		$('#paid_amount_pos').val(paid3);
+		var dis_num = $(this).val();
+		if(!dis_num)
+			dis_num=0;
+		var tol = document.getElementById("total_amount3").innerText;
+		var paid3=$('#paid3').val();
+		// var total_paid = parseFloat(dis_num) + parseFloat(paid3);
+		var mb = $('#viewer3').text();
+		// alert(paid3);
+		// var final = parseFloat(tol) - parseFloat(total_paid);
+		var final = parseFloat(paid3) - parseFloat(tol) - parseFloat(dis_num);
+		var value = Math.abs(final);
+		var v = value.toFixed(2);
+		$('#change3').val(v);
+		$('#paid_abount_pos').val(paid3);
 		$('#change_pos').val(v);
 		$('#discount_amount').val(dis_num);
+
+	 });  
+ 
+	 $("#paid3").on('keyup', function(){
+		 
+		 var paid3 = $(this).val();
+		 var tol = document.getElementById('total_amount3').innerText;
+		 var dis_num = $('#discount_amount').val();
+		 if(!dis_num)
+			dis_num=0;
+		 // var total_paid = parseFloat(dis_num) + parseFloat(paid3);
+		 var mb = $('#viewer3').text();
+		 // var final = parseFloat(tol) - parseFloat(total_paid);
+		 console.log(paid3 + ':' + tol + ':' + dis_num);
+		 var final = parseFloat(paid3) - parseFloat(tol) - parseFloat(dis_num);
+		 var value = Math.abs(final);
+		 var v = value.toFixed(2);
+		 $('#change3').val(v);
+		 $('#paid_amount_pos').val(paid3);
+		 $('#change_pos').val(v);
+		 $('#discount_amount').val(dis_num);
 	 });
-	  $("#wallet_paid").on("keyup", function(){
-		var dis_num =$("#discount3").val();
-		    var tol = document.getElementById("total_amount3").innerText;
-			var paid3=$('#paid3').val();
-			var paidkoocoin=$("#wallet_paid").val();
-			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
-			  var mb = $('#viewer3').text();
-		// alert(mb);
-		    		  // var final = parseFloat(tol)-parseFloat(total_paid);
-		    		  // var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
-		    		  var final =(parseFloat(paid3)+parseFloat(paidkoocoin))-(parseFloat(tol)+parseFloat(dis_num));
-                var value = Math.abs(final);
-                      var v = value.toFixed(2);
-                      $('#change3').val(v);
-		$('#paid_amount_pos').val(paid3);
-		$('#change_pos').val(v);
-		$('#discount_amount').val(dis_num);
-	 });
-	  $("#paid3").on("keyup", function(){
-		  var dis_num =$("#discount3").val();
-		    var tol = document.getElementById("total_amount3").innerText;
-			var paid3=$('#paid3').val();
-			var paidkoocoin=$("#wallet_paid").val();
-			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
-			  var mb = $('#viewer3').text();
-		// alert(mb);
-		    		  // var final = parseFloat(tol)-parseFloat(total_paid);
-		    		  // var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
-		    		  var final =(parseFloat(paid3)+parseFloat(paidkoocoin))-(parseFloat(tol)+parseFloat(dis_num));
-                var value = Math.abs(final);
-                      var v = value.toFixed(2);
-                      $('#change3').val(v);
-		$('#paid_amount_pos').val(paid3);
-		$('#change_pos').val(v);
-		$('#discount_amount').val(dis_num);
-	 });
+		
+	  
 	$(document).on("click",'.master_category_filter', function(e) { 
 	    e.preventDefault();
 		var filterValue = $(this).attr('data-filter');

@@ -189,7 +189,7 @@ if($product['pro_ct'] > 0) { ?>
                     {
 						if($ordercount>0)
 						{
-							 $q="SELECT category.*,arrange_system.shift_pos FROM category inner join arrange_system on  category.id=arrange_system.entity_id
+							 $q="SELECT category.*,arrange_system.shift_pos FROM category inner join arrange_system on  category.id=arrange_system.entity_id and arrange_system.user_id='".$id."'
 							 WHERE category.user_id ='".$id."' and category.catparent='".$index."' and category.status=0 group by arrange_system.entity_id order by arrange_system.shift_pos asc";
 							$sub_categories_q = mysqli_query($conn,$q);
 						
@@ -233,7 +233,7 @@ if($product['pro_ct'] > 0) { ?>
                     $subproducts_global = [];
 					if($pcount>0)
 					{
-						 $q="SELECT products.*,arrange_system.shift_pos FROM products inner join arrange_system on  products.id=arrange_system.entity_id
+						 $q="SELECT products.*,arrange_system.shift_pos FROM products inner join arrange_system on  products.id=arrange_system.entity_id 
 							 WHERE products.user_id ='".$id."'  and products.status=0 group by arrange_system.entity_id order by arrange_system.shift_pos asc";
 						$total_rows = mysqli_query($conn,$q);
 					}
@@ -276,20 +276,15 @@ if($product['pro_ct'] > 0) { ?>
                                             <input type="hidden" id="id" name="m_id" value="<?php echo $id;?>">
                                             <input type="hidden" id="id" name="p_id" value="<?php echo $row['id'];?>">
                                             <?php if(isActive($row['active_time']) && $row['on_stock']){ ?>
-                                            <button role="button"  class="pro_status introduce-remarks btn btn-large btn-primary" data-toggle="modal" data-target="#remarks_area" disabled="disabled">Remarks</button>
-                                            <input type="hidden" name="single_ingredients" value=""/>
+                                            <button role="button" style="display:none!important" class="pro_status introduce-remarks btn btn-large btn-primary" data-toggle="modal" data-target="#remarks_area" disabled="disabled">Remarks</button>
+                                          
+										   <input type="hidden" name="single_ingredients" value=""/>
                                             <input type="hidden" name="extra" value=""/>   
                                             <?php } ?>
                                             <p class="mBt10 product_name_field"><strong><?php echo $row['product_name']; ?></strong></p>
                                              <div style="float: left;">
                                                  <p class="mBt10"><?php echo $row['remark']; ?></p>
-                                                 <p class="mBt10"><?php
-												 $product_price=$row['product_price'];
-												 $discount_value=$row['product_discount'];
-												 $dis_value = ($discount_value / 100) * $product_price;
-												 $offer_value=$product_price-$dis_value;
-												 echo 'Pr :  Rm'.number_format($row['product_price'],2); 
-													?></p>
+                                                 <p class="mBt10"><?php echo 'Pr : Rm'.number_format($row['product_price'],2); ?></p>
                                              </div>   
                                             <div class="common_quant">
 											<?php if($row['varient_exit']=="y") { $cart_class="with_varient";} else { $cart_class="without_varient";} ?>
@@ -297,7 +292,7 @@ if($product['pro_ct'] > 0) { ?>
                                             if(!empty($row['image'])){
                                                 if(isActive($row['active_time']) && $row['on_stock']){
                                                 ?>
-                                                  <p  id="product_child_<?php echo $row['id']?>" class="pro_status text_add_cart <?php echo $cart_class ?>"  data_varient_must='<?php echo $row['varient_must']; ?>' data-id = "<?php echo $row['id'] ?>" data-code = "<?php echo $row['product_type'] ?>"  data-pr = "<?php echo $row['product_price'] ?>" data-name = "<?php echo $row['product_name'] ?>">
+                                                  <p  id="product_child_<?php echo $row['id']?>"  data-rebate='<?php echo $row['product_discount'];?>' class="pro_status text_add_cart <?php echo $cart_class ?>"  data_varient_must='<?php echo $row['varient_must']; ?>' data-id = "<?php echo $row['id'] ?>" data-code = "<?php echo $row['product_type'] ?>"  data-pr = "<?php echo $row['product_price'] ?>" data-name = "<?php echo $row['product_name'] ?>">
 												<i  id="child_<?php echo $row['id']?>" class="fa fa-plus"></i></p>
                                                 <p class="quantity">
                                                     <input type="hidden" value="1" class="quatity" name="quatity">
@@ -307,7 +302,7 @@ if($product['pro_ct'] > 0) { ?>
                                                 if(isActive($row['active_time'])){
                                                     if($row['on_stock']){
                                                 ?>
-                                                  <p  id="product_child_<?php echo $row['id']?>" class="pro_status text_add_cart <?php echo $cart_class ?>" data_varient_must='<?php echo $row['varient_must']; ?>'  data-id = "<?php echo $row['id'] ?>" data-code = "<?php echo $row['product_type'] ?>"  data-pr = "<?php echo $row['product_price'] ?>" data-name = "<?php echo $row['product_name'] ?>">
+                                                  <p  id="product_child_<?php echo $row['id']?>" class="pro_status text_add_cart <?php echo $cart_class ?>" data-rebate='<?php echo $row['product_discount'];?>' data_varient_must='<?php echo $row['varient_must']; ?>'  data-id = "<?php echo $row['id'] ?>" data-code = "<?php echo $row['product_type'] ?>"  data-pr = "<?php echo $row['product_price'] ?>" data-name = "<?php echo $row['product_name'] ?>">
 												<i  id="child_<?php echo $row['id']?>" class="fa fa-plus"></i></p>
                                                 <p class="quantity">
                                                     <input type="hidden" value="1" class="quatity" name="quatity">

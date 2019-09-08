@@ -234,9 +234,9 @@ $print_report="n";
 									}
 									else
 									{
-										$url="print_shift_report.php?type=latest&start_dt=".$shift_start_dt."&end_dt=".date('Y-m-d H:i',strtotime($end_dt))."&user=".$mercant_id;
+										// $url="print_shift_report.php?type=latest&start_dt=".$shift_start_dt."&end_dt=".date('Y-m-d H:i',strtotime($end_dt))."&user=".$mercant_id;
 										
-										// $url="#";
+										$url="#";
 										// $url="print_shift_report.php?start_dt=".$shift_start_dt."&end_dt=".date('Y-m-d H:i',strtotime($end_dt))."&user=".$mercant_id;
 										
 									}   

@@ -782,7 +782,7 @@
          <!--
             <h1>koofamilies</h1>
             -->
-         <img src="images/logo_new.jpg" width="170px" height="100px" class="logo_main">
+       
          <div class="login-form">
             <div class="login-left" style="width:30%;">
                <div class="logo" style="margin-top: 55px;">
@@ -814,21 +814,10 @@ setInterval(myfunc,1000);
                      <?php if(isset($_SESSION['msg'])){ ?>
                      <p><?php echo $_SESSION['msg']; ?></p>
                      <?php  unset($_SESSION['msg']);  } ?>
-                     <div class="language">
-                        <select class="language_option form-control" name="language">
-                           <option <?php if($_SESSION["langfile"] == "English") echo "selected"?>>English</option>
-                           <option <?php if($_SESSION["langfile"] == "Chinese") echo "selected"?>>Chinese</option>
-                           <option value="malaysian" <?php if($_SESSION["langfile"] == "malaysian") echo "selected"?>>Malay</option>
-                        </select>
-                     </div>
+                    
                     
                    
-                     <ul class="resp-tabs-list">
-                        <li class="resp-tab-item" aria-controls="tab_item-0" role="tab"><span><?php echo $language["login"];?></span></li>
-                        <li class="resp-tab-item" aria-controls="tab_item-1" role="tab"><label>/</label><span><?php echo $language["signup"];?></span></li>
-                        <li class="resp-tab-item sign_up" aria-controls="tab_item-2" role="tab"><label>/</label><span><?php echo $language["forget_password"];?></span></li>
-                        <div class="clear"> </div>
-                     </ul>
+                   
                      <div class="resp-tabs-container">
                            <div class="tab-1 resp-tab-content" aria-labelledby="tab_item-0">
 								<?php
@@ -1163,7 +1152,7 @@ list-style: none;
         <li class="letter " onclick="document.getElementById('login_pass').value=document.getElementById('login_pass').value+'8'">8</li>  
         <li class="letter" onclick="document.getElementById('login_pass').value=document.getElementById('login_pass').value+'9'">9</li>  
         <li class="letter clearl" style="width:51%;" onclick="document.getElementById('login_pass').value=document.getElementById('login_pass').value+'0'">0</li>
-         <li class="letter" style="width:30%;height:125px;margin-top:-65px;" onclick="document.getElementById('msub').click();"><br><input type="submit" id="msub" name="login" value="<?php echo $language["login"];?>" style="background:none;background-color:lighblue;border:0px;fontsize:24px;" /></li>  
+         <li class="letter" style="width:30%;height:125px;margin-top:-65px;background:green" onclick="document.getElementById('msub').click();"><br><input type="submit" id="msub" name="login" value="<?php echo $language["login"];?>" style="background:none;background-color:lighblue;border:0px;fontsize:24px;" /></li>  
     
     </ul>  
 <br><br><br><br>
@@ -1713,6 +1702,12 @@ list-style: none;
                            </form>
                         </div>
                      </div>
+					   <ul class="resp-tabs-list">
+                        <li class="resp-tab-item" aria-controls="tab_item-0" role="tab"><span><?php echo $language["login"];?></span></li>
+                        <li class="resp-tab-item" aria-controls="tab_item-1" role="tab"><label>/</label><span><?php echo $language["signup"];?></span></li>
+                        <li class="resp-tab-item sign_up" aria-controls="tab_item-2" role="tab"><label>/</label><span><?php echo $language["forget_password"];?></span></li>
+                        <div class="clear"> </div>
+                     </ul>
                   </div>
                </div>
             </div>
