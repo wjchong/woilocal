@@ -985,8 +985,8 @@ function singleorderprint($ip_address,$data,$date,$time,$order,$conn,$s_t,$s_nam
 					$number = $i + 1;
 					$j=0;
 					
-					$printer -> textChinese( ' '.$name."  ".$qty."\n");  
-					// $printer -> textChinese( ' ( '.$p_code.' )          '. $qty ."\n");
+					$printer -> textChinese( ' '.$name."\n");  
+					$printer -> textChinese( ' ( '.$p_code.' )          '. $qty ."\n");
 					 // $printer -> text( '   '.  $p_code."\n");
 					if(strlen($remark)>0)
 						 {
@@ -1336,7 +1336,7 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 				{
 					$cash_pay=number_format($cash_pay,2);
 					$printer -> text( "               "."Cash Pay:             RM $cash_pay" . "   " . "\n");
-				} 
+				}
 				
 			   $printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
 				
@@ -1373,6 +1373,7 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 							$printer -> setEmphasis(false);
 							if(count($rows_locations)>0)
 							{
+
 								$printer -> text( ' ' . "Customer Location:" . "\n" );
 								foreach( $rows_locations as $item ) {
 									$printer -> text( ' ' . $item . "\n" );

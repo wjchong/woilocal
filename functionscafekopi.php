@@ -985,7 +985,7 @@ function singleorderprint($ip_address,$data,$date,$time,$order,$conn,$s_t,$s_nam
 					$number = $i + 1;
 					$j=0;
 					
-					$printer -> textChinese( ' '.$name."  ".$qty."\n");  
+					$printer -> textChinese( ' '.$name."     ".$qty."\n");  
 					// $printer -> textChinese( ' ( '.$p_code.' )          '. $qty ."\n");
 					 // $printer -> text( '   '.  $p_code."\n");
 					if(strlen($remark)>0)
@@ -1316,35 +1316,35 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 				$printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
 				$printer -> text( "------------ -------------" . "\n");
 				$printer -> text( "Qty: " . $qty_total . "      " ."Total:      RM $total" . "   " . "\n");
-				$printer -> selectPrintMode(Printer::MODE_FONT_A);
-				if($paid_amount_pos>0)
-				{
-					$paid_amount_pos=number_format($paid_amount_pos,2);
-					$printer -> text( "                "."Paid:             RM $paid_amount_pos" . "   " . "\n");
-				}
-				if($wallet_paid_amount>0)
-				{
-					$wallet_paid_amount=number_format($wallet_paid_amount,2);
-					$printer -> text( "          "."Paid By $wal_label:            RM $wallet_paid_amount" . "   " . "\n");
-				}
-				if($discount_amount>0)
-				{
-					$discount_amount=number_format($discount_amount,2);
-					$printer -> text( "         "."Discount:           RM $discount_amount" . "   " . "\n");
-				}
-			    if($cash_pay>0)
-				{
-					$cash_pay=number_format($cash_pay,2);
-					$printer -> text( "               "."Cash Pay:             RM $cash_pay" . "   " . "\n");
-				} 
+				// $printer -> selectPrintMode(Printer::MODE_FONT_A);
+				// if($paid_amount_pos>0)
+				// {
+					// $paid_amount_pos=number_format($paid_amount_pos,2);
+					// $printer -> text( "                "."Paid:             RM $paid_amount_pos" . "   " . "\n");
+				// }
+				// if($wallet_paid_amount>0)
+				// {
+					// $wallet_paid_amount=number_format($wallet_paid_amount,2);
+					// $printer -> text( "          "."Paid By $wal_label:            RM $wallet_paid_amount" . "   " . "\n");
+				// }
+				// if($discount_amount>0)
+				// {
+					// $discount_amount=number_format($discount_amount,2);
+					// $printer -> text( "         "."Discount:           RM $discount_amount" . "   " . "\n");
+				// }
+			    // if($cash_pay>0)
+				// {
+					// $cash_pay=number_format($cash_pay,2);
+					// $printer -> text( "               "."Cash Pay:             RM $cash_pay" . "   " . "\n");
+				// }
 				
 			   $printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
 				
-				if($change_pos>0)
-				{
-					$change_pos=number_format($change_pos,2);
-					$printer -> text( "           " ."Change:      RM $change_pos" . "   " . "\n");
-				}
+				// if($change_pos>0)
+				// {
+					// $change_pos=number_format($change_pos,2);
+					// $printer -> text( "           " ."Change:      RM $change_pos" . "   " . "\n");
+				// }
 					// $printer -> text("\n");
 				if($order_place=="live" || $order_place=="poslive")
 				{
@@ -1373,9 +1373,11 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 							$printer -> setEmphasis(false);
 							if(count($rows_locations)>0)
 							{
-								$printer -> text( ' ' . "Customer Location:" . "\n" );
+
+								// $printer -> text( ' ' . "Customer Location:" . "\n" );
+								// $printer -> text( ' ' . "Customer Location:" . "\n" );
 								foreach( $rows_locations as $item ) {
-									$printer -> text( ' ' . $item . "\n" );
+									// $printer -> text( ' ' . $item . "\n" );
 									// $printer -> text("\n");
 								}
 							}
@@ -1400,4 +1402,5 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 		}
 			return $res;
 	}
+
 

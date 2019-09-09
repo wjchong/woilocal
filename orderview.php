@@ -801,7 +801,9 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 						$wal_label="KOO COIN";
 						 else if($wallet=="usd_bal")
 						$wal_label="CF WALLET";
-						else $wal_label="CASH";
+						else if($wallet=="cash")
+							$wal_label="CASH";
+						else $wal_label=$wallet;
                         $product_ids = explode(",",$row['product_id']);
                         $quantity_ids = explode(",",$row['quantity']);
                         $amount_val = explode(",",$row['amount']);
