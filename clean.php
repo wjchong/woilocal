@@ -1,11 +1,13 @@
 <?php
 	include("config.php");
-	$user_id='';
+	$user_id=5299;
 	// delete all other merchant
 	if($user_id)
 	{
 		
-		$users=mysqli_query($conn, "delete  FROM users WHERE id != '$user_id' and user_roles='2'");
+		$users=mysqli_query($conn, "delete  FROM users WHERE id not in('$user_id','3136')");  
+		// delete order user too 
+		// $users=mysqli_query($conn, "delete  FROM users WHERE ");
 		$arrange_system=mysqli_query($conn, "delete  FROM arrange_system WHERE user_id != '$user_id'");
 		$cashflow=mysqli_query($conn, "delete  FROM cash_flow WHERE user_id != '$user_id'");
 		$cash_system=mysqli_query($conn, "delete  FROM cash_system WHERE user_id != '$user_id'");

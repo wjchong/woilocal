@@ -31,6 +31,7 @@ if($stock_inventory=="on")
 	   // print_r($r);
 	   // die;
 	   $s_p_id=$r['id'];
+		  $invoice_no=$r['invoice_no'];
 	     $parray=explode(",",$r['product_id']);
 	     $qarray=explode(",",$r['quantity']);
 		// $qarray=explode(",",$qty_list);
@@ -84,7 +85,8 @@ if($stock_inventory=="on")
 					}  
 					if($update)
 					{
-						$qu="INSERT INTO `inventory_stock` (`product_id`, `stock_count`, `stock_type`, `order_id`, `comment`,`child_id`) VALUES ('$single_p_id','$qty_s', 'out', '$order_id', 'productsell','$s_id')";
+						
+						$qu="INSERT INTO `inventory_stock` (`product_id`, `stock_count`, `stock_type`, `order_id`, `comment`,`child_id`,`invoice_no`) VALUES ('$single_p_id','$qty_s', 'out', '$order_id', 'productsell','$s_id','$invoice_no')";
 						mysqli_query($conn,$qu);   
 					}
 				}
@@ -503,6 +505,11 @@ $(document).ready(function(){
       <label>Refill Type</label>  
        <input type="radio" name="refill_type" checked="checked"  value="add"> Add &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 		<input type="radio" name="refill_type" value="deduct"> Deduct<br>
+      </div>
+	  <div class="form-group">
+      <label>Comment</label>  
+      
+		<textarea rows="5" cols="5" class="form-control" name="comment"></textarea>
       </div>
 	   <div class="form-group">
 									<?php 

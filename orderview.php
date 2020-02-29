@@ -1,7 +1,13 @@
 <?php
 
-session_start();
 include("config.php");
+
+if($_SESSION['login']=='')
+{
+	include("dlogin.php");
+}
+// print_R($_SESSION);
+// die;
 $current_time = date('Y-m-d H:i:s');
 function ceiling($number, $significance = 1)
 								{
@@ -32,6 +38,7 @@ if(!isset($_SESSION['login']) || empty($_SESSION['login'])){
 $profile_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$_SESSION['login']."'"));
 // print_R($profile_data);
 // die;
+$user_roles=$profile_data['user_roles'];
 if($profile_data['user_roles']==5)
 {
 	$loginidset=$profile_data['parentid'];
@@ -44,12 +51,19 @@ else
 }
 $parent_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='$loginidset'"));
  $cash_check=$parent_data['cash_system'];
+ $total_table=$parent_data['total_table'];
 
 $cash_match="n";
   $cash_allow=$_SESSION['cash_allow'];
 
  $cash_id=$_SESSION['cash_id'];
-
+if($total_table)
+{
+	// get all section of merchant 
+	$section_data = mysqli_fetch_all(mysqli_query($conn, "SELECT name,id,user_id FROM sections WHERE user_id='$loginidset'"));
+	// print_R($section_data);
+	// die;
+}
 if($cash_allow)
 {
 	if($cash_check=="on")
@@ -76,6 +90,16 @@ else
 {
 	$p_class="";
 }
+// remove past order on daily basis
+	$past_order_query = "INSERT INTO past_order_list SELECT * FROM order_list WHERE DATE(created_on) < DATE_SUB(CURDATE(), INTERVAL 2 DAY)";
+	mysqli_query($conn,$past_order_query);
+	$delete_pass_order = "DELETE FROM `order_list` WHERE DATE(created_on) < DATE_SUB(CURDATE(), INTERVAL 2 DAY)";
+	mysqli_query($conn,$delete_pass_order);
+	$past_order_varient_query = "INSERT INTO past_order_varient SELECT * FROM order_varient WHERE DATE(created) < DATE_SUB(CURDATE(), INTERVAL 2 DAY)";
+	mysqli_query($conn,$past_order_varient_query);
+	$delete_pass_order_varient = "DELETE FROM `order_varient` WHERE DATE(created) < DATE_SUB(CURDATE(), INTERVAL 2 DAY)";
+	mysqli_query($conn,$delete_pass_order_varient);    
+// remove past order on daily basis
 if($stock_inventory=="on")
 {
    $stockq="select * from order_list where merchant_id='".$loginidset."' and order_place='live' and stock_check='n'";
@@ -86,6 +110,7 @@ if($stock_inventory=="on")
 	   // print_r($r);
 	   // die;
 	   $s_p_id=$r['id'];
+	     $invoice_no=$r['invoice_no'];
 	     $parray=explode(",",$r['product_id']);
 	     $qarray=explode(",",$r['quantity']);
 		// $qarray=explode(",",$qty_list);
@@ -139,9 +164,9 @@ if($stock_inventory=="on")
 					}  
 					if($update)
 					{
-						$qu="INSERT INTO `inventory_stock` (`product_id`, `stock_count`, `stock_type`, `order_id`, `comment`,`child_id`) VALUES ('$single_p_id','$qty_s', 'out', '$order_id', 'productsell','$s_id')";
+						$qu="INSERT INTO `inventory_stock` (`product_id`, `stock_count`, `stock_type`, `order_id`, `comment`,`child_id`,`invoice_no`) VALUES ('$single_p_id','$qty_s', 'out', '$order_id', 'productsell','$s_id','$invoice_no')";
 						mysqli_query($conn,$qu);   
-					}
+					}  
 				}
 				$ps++;
 			}
@@ -178,14 +203,18 @@ if(isset($_GET['q']) && isset($_GET['cr'])){
 }else{
 	  $query="SELECT order_list.*, sections.name as section_name FROM order_list left join sections on order_list.section_type = sections.id WHERE merchant_id ='".$loginidset."' ORDER BY order_list.created_on DESC LIMIT $offset, $rec_limit";
 }
+// echo $query;
+// die;
 $total_rows = mysqli_query($conn,$query);
 $total_rows1 = mysqli_query($conn,$query);
-$last_id = mysqli_fetch_assoc(mysqli_query($conn, "SELECT max(id) as max_id FROM order_list WHERE merchant_id ='".$loginidset."'"))['max_id'];
+ $last_id = mysqli_fetch_assoc(mysqli_query($conn, "SELECT max(id) as max_id FROM order_list WHERE merchant_id ='".$loginidset."'"))['max_id'];
 
 $merchant_name = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id ='".$loginidset."'"));
 $pending_time = $merchant_name['pending_time'];
 $alaram_required = $merchant_name['alaram_required'];
 $sstper = $merchant_name['sst_rate'];
+if($_SESSION["langfile"]=='')
+	$_SESSION['langfile']='english';
 require_once ("languages/".$_SESSION["langfile"].".php");
  $i =1; 
 $pending_data = array();
@@ -626,15 +655,20 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 	?>
 </head>
 <body class="header-light sidebar-dark sidebar-expand pace-done">
-   <?php 
-     if(isset($_SESSION['pos'])=="y")
+<!--  
+  <?php 
+     if($_SESSION['pos']=="y")
 		{
+		  
+			unset($_SESSION['pos']);
+			 $_SESSION['pos']="";   
 	   ?>
-	   <!--meta http-equiv="Refresh" content="10; url=http://127.0.0.1/koofamilies/pos.php" /!-->
+	   <meta http-equiv="Refresh" content="3; url=<?php echo $site_url;?>/pos.php" />
 	   <?php 
 		}
-		   $_SESSION['pos']=="";
+		  
    ?>
+   !-->
 <div id="wrapper" class="wrapper">
     <!-- HEADER & TOP NAVIGATION -->
     <?php include("includes1/navbar.php"); ?>
@@ -652,16 +686,16 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                 <div class="well">
 				 
                     <?php if (count($pending_data) > 0){?>
-                        <h5 style="color: red;">Invoice not yet done and require immediate attention!</h5>
+                        <h5 style="color: red;"><?php echo $language['invoice_not_yet']; ?></h5>
                         <div style="width: 380px; max-height: 300px; overflow: auto;">
                         
                             <table class="table table-striped" >
                               <thead>
                                 <tr>
-                                  <th><?php echo $language["date_of_order"];?></th>
-                                  <th>Invoice <br> Numbers</th>
-                                  <th>Section <br> Numbers</th>
-                                  <th>Table <br> Number</th>
+                                 <th><?php echo $language["date_of_order"];?></th>
+                                  <th><?php echo $language['invoice_number']; ?></th>
+                                  <th><?php echo $language['section_number']; ?></th>
+                                  <th> <?php echo $language['table_number']; ?></th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -689,7 +723,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                     <div>
                         <h3><?php //echo $language['order_list'];?></h3>
                         <span style="cursor: pointer; color:blue;text-decoration:underline;font-size: 40px;" id="scan_order"><?php echo $language['scan_order'];?></span>
-						&nbsp;&nbsp;&nbsp;&nbsp;<span style="cursor: pointer; color:green;text-decoration:underline;font-size: 40px;" id="scan_order1">Table/combine bill</span>
+						&nbsp;&nbsp;&nbsp;&nbsp;<span style="cursor: pointer; color:green;text-decoration:underline;font-size: 40px;" id="scan_order1"><?php echo $language['table_combine'];?></span>
 						<p><a href="pos.php" style="cursor: pointer; color:green;text-decoration:underline;font-size: 40px;margin-left:20%;">Place Order</a></p>
 						<?php if($alaram_required=="y"){ ?>
 						 <span class="alaram" style="display:none;">
@@ -703,10 +737,10 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							<div class="row">
 							  <div class="col-sm-2">
 								<select class="form-control" name="cr" id="criteria_field">
-								  <option <?php echo (!isset($_GET['cr']) || $_GET['cr'] == "invoice_no") ? "selected" : ""; ?> val="invoice_no">Invoice number</option>
-								  <option <?php echo ($_GET['cr'] == "table") ? "selected" : ""; ?> val="table">Table number</option>
-								  <option <?php echo ($_GET['cr'] == "prod_no") ? "selected" : ""; ?> val="prod_no">Product code</option>
-								  <option <?php echo ($_GET['cr'] == "phone_no") ? "selected" : ""; ?> val="phone_no">Phone number</option>
+								  <option <?php echo (!isset($_GET['cr']) || $_GET['cr'] == "invoice_no") ? "selected" : ""; ?> val="invoice_no"><?php echo $language['invoice_number'];?></option>
+								  <option <?php echo ($_GET['cr'] == "table") ? "selected" : ""; ?> val="table"><?php echo $language['table_number'];?></option>
+								  <option <?php echo ($_GET['cr'] == "prod_no") ? "selected" : ""; ?> val="prod_no"><?php echo $language['product_code'];?></option>
+								  <option <?php echo ($_GET['cr'] == "phone_no") ? "selected" : ""; ?> val="phone_no"><?php echo $language['telephone_number'];?></option>
 								</select>
 							  </div>
 							  <div class="col-sm-2">
@@ -715,12 +749,19 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							</div>
 							<div class="row">
 								<div class="col-sm-1" style="margin-top:20px;max-width:150px;">
-									<button type="button" class="btn btn-secondary" id="apply_criteria">Aply criteria</button>
+									<button type="button" class="btn btn-secondary" id="apply_criteria"><?php echo $language['apply_criteria'];?></button>
 							  </div>
 								<div class="col-sm-1" style="margin-top:20px">
-									<button type="button" class="btn btn-danger" onclick="window.location.href='./orderview.php'">Clear criteria</button>
+									<button type="button" class="btn btn-danger" onclick="window.location.href='./orderview.php'"><?php echo $language['clear_criteria'];?></button>
+							  </div>
+							  <div class="col-sm-1" style="margin-top:20px">
+									<a href="sync.php" class="btn btn-primary">Local Coin Sync</a>
+							  </div>
+							  <div class="col-sm-1" style="margin-top:20px">
+								<a href="syncsubscription.php" class="btn btn-primary">Sync subscription</a>
 							  </div>
 							</div>
+							
 						  </form>
 						</div>
 					
@@ -747,18 +788,21 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 					<?php } ?>
                     <table class="table table-striped">
                         <thead>
-                        <tr>
+                         <tr>
 						    <?php if($merchant_name['spassword'] && $merchant_name['spassword_need']){ ?> <th>Action</th> <?php  } ?>
                             <th><?php echo $language["items"];?></th>
                             <th><?php echo $language["date_of_order"];?></th>
                            
                             <th><?php echo $language["status"];?></th>
-                            <th><?php echo "Sec";?></th>
+                            <th><?php echo $language["detail"];?></th>
+                            <th><?php echo $language["short_section"];?></th>
+							
+                            
                             <th><?php echo $language["table_number"];?></th>
-							<th>Invoice Number</th>
-                            <th>Internal Receipt</th>
-							<th>Customer receipt</th>
-                            <th><?php echo $language["chat"];?></th>
+							<th><?php echo $language["invoice_number"];?></th>
+                            <th><?php echo $language["internal_recipt"];?></th>
+							<th><?php echo $language["customer_recipt"];?></th>
+                            <!--th><?php echo $language["chat"];?></th!-->
                             
 							 <th><?php echo $language["amount"];?></th>
 							  <th><?php echo $language["quantity"];?></th>
@@ -768,32 +812,38 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							 <!--th><?php echo "Grand Total (Inc ".$sstper." % SST)";?></th!-->
 							 <th><?php echo "Grand Total";?></th>
 							<?php } ?>
-                            <th><?php echo "Paid By Wallet";?></th>
-                            <th><?php echo "Bal.  Payment";?></th>
+							 <th><?php echo $language["delivery_charges"];?></th>
+							  <th><?php echo $language["membership_discount"];?></th>
+							  <th><?php echo $language['coupon_discount']; ?></th>
+							  <th><?php echo $language["final_total"];?></th>
+                           
+                            <th><?php echo $language['paid_by_wallet'];?></th>
+                            <th><?php echo $language['bal_payment'];?></th>
+                       
                            
                             <th class="product_name test_product"><?php echo $language["product_name"];?></th>
-							   <th class="product_name test_product"><?php echo "VARIENT";?></th>
-                            <th class="product_name test_product"><?php echo $language["remark"];?></th>
+							<th class="product_name test_product" style="min-width: 350px;"><?php echo $language['varient'];?></th>
+                            <th class="product_name test_product" style="min-width: 350px;"><?php echo $language["remark"];?></th>
                             <th><?php echo $language["product_code"];?></th>
-                            <th>Price</th>
-							
+                           
                             <th><?php echo $language["mode_of_payment"];?></th>
                             <th class="location_head"><?php echo $language["location"];?></th>
-                            <th>Phone</th>
-							 <th>Username</th>
-                            <th>Delivery <br> Service</th>
+                            <th class="order_remark"><?php echo $language['order_remark'];?></th>
+                            <th><?php echo $language["phone"];?></th>
+							 <th><?php echo $language["username"];?></th>
+                           
+							<th><?php echo $language["delivery_services"];?></th>
                             <!-- <th><?php echo $language["print"];?></th> -->
                             <th>K1/K2</th>
-							<th>Invoice</th>
-							<th>Kitchen</th>
+							
+							<th><?php echo $language["invoice"];?></th>
+							<th><?php echo $language["kitchen"];?></th>
                         </tr>
                         </thead>
-                        <tbody id="orderview-body">
+                         <tbody id="orderview-body">
                         <?php
                         $i =1;
                         while ($row=mysqli_fetch_assoc($total_rows)){
-						
-							
 						$wallet=$row['wallet'];
 						if($wallet=="myr_bal")
 						$wal_label="MYR WALLET";
@@ -887,21 +937,22 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							   <!--label class= "status btn btn-primary" status="<?php echo $row['status'];?>" data-invoce='<?php echo $row['invoice_no'];?>' data-id="<?php echo $row['id']; ?>"> <?php echo $sta; ?></label!-->
                               
 							</td>
+							<td class="s_order_detail btn btn-primary" order_id='<?php echo $row['id']; ?>'>Detail</td>
 							   <td class="table_number_<?php echo $row['id']?>"><?php echo $row['section_name'];?></td>
 							<td class="table_number_<?php echo $row['id']?>"><?php echo $row['table_type'];?></td>
                              <td>
                                 <?php echo $row['invoice_no']; ?>
                             </td>
                             <td>
-							 <a class="print-order <?php  if($row['auto_print']!='1'){ echo "blinking";} ?>" href="#" data-id="<?php echo $row['id']; ?>" data-invoice="<?php echo $row['invoice_no']; ?>">Print Receipt</a>
+							 <a class="print-order <?php  if($row['auto_print']!='1'){ echo "blinking";} ?>" href="#" data-id="<?php echo $row['id']; ?>" data-invoice="<?php echo $row['invoice_no']; ?>"><?php echo $language['print_receipt']; ?></a>
 							  
                             </td>
 							 <td>
-							 <a class="normal_print" href="#" data-id="<?php echo $row['id']; ?>" data-invoice="<?php echo $row['invoice_no']; ?>">Print Receipt</a>
+							 <a class="normal_print" href="#" data-id="<?php echo $row['id']; ?>" data-invoice="<?php echo $row['invoice_no']; ?>"><?php echo $language['print_receipt']; ?></a>
 							  
                             </td>
 							
-                            <td><a target="_blank" href="<?php echo $site_url; ?>/chat/chat.php?sender=<?php echo $loginidset?>&receiver=<?php echo $row['user_id'];?>"><i class="fa fa-comments-o" style="font-size:25px;"></i></a></td>
+                            <!--td><a target="_blank" href="<?php echo $site_url; ?>/chat/chat.php?sender=<?php echo $loginidset?>&receiver=<?php echo $row['user_id'];?>"><i class="fa fa-comments-o" style="font-size:25px;"></i></a></td!-->
                            
                             <td class="amount_<?php echo $row['id'];?>">
 
@@ -966,9 +1017,16 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							 ?>
 							  <td><?php echo $incsst; ?></td>
 							  <td><?php  echo $g_total;?></td>
+							  
 							<?php } else { $g_total=$total;} ?>
+							
+							<td><?php  echo @number_format($row['order_extra_charge'],2); ?></td>
+							<td><?php  echo @number_format($row['membership_discount'],2); ?></td>
+							<td><?php echo @number_format($row['coupon_discount'],2); ?></td>
+							<td><?php  echo @number_format(($g_total+$row['order_extra_charge'])-($row['membership_discount']+$row['coupon_discount']),2); ?></td>
+							
 							<td><?php  echo @number_format($row['wallet_paid_amount'],2); ?></td>
-							<td><?php echo @number_format($g_total-$row['wallet_paid_amount'], 2); ?></td>
+							<td><?php echo @number_format(($g_total+$row['order_extra_charge'])-($row['wallet_paid_amount']+$row['membership_discount']), 2); ?></td>   
                            
                           
                             <td class="products_namess product_name_<?php echo $row['id'];?> test_productss" ><?php foreach ($product_ids as $key )
@@ -1041,20 +1099,18 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                     echo $key.'<br>'; }
                                 ?>
                             </td>
-                            <td>
-                                <?php
-                                foreach ($amount_val as $key => $value){
-                                    echo @number_format($value, 2).'<br>';
-                                }
-                                ?>
-                            </td>
+                           
                             
                              <td><?php echo $wal_label;  ?></td>  
-                            <td class="location_<?php echo $row['id']; ?> new_tablee"><?php echo $row['location'];?></td>
+                            <td class="location_<?php echo $row['id']; ?> new_tablee">
+							<a class="" target="_blank" href="http://maps.google.com/maps?q=<?php echo  $row['location']; ?>">  
+						
+							<?php echo $row['location'];?></a></td>
+							 <td><?php echo $row['remark_extra']; ?></td>
                               <td><?php echo $row['user_mobile']; ?></td>
 							   <td class="username_<?php echo $row['id'];?>"><?php echo $row['user_name']; ?></td>
                             <td><a onclick="copy_orderDetail(<?php echo $row['id']?>)" href="#" class="delivery" id="<?php echo $row['id'];?>"><i class="fa fa-truck" style="font-size:25px;"></i></a></td>
-                            <td><?php echo $row['wallet'];  ?></td>
+                            <td><?php echo $wal_label;  ?></td>   
                             <?php if($sta == "Done"){?>
                                 <td></td>
                             <?php }?>
@@ -1067,7 +1123,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                         </tr>
                         <?php   $i++; }
                         ?>
-                        </tbody>
+                        </tbody>  
                     </table>  
 					<?php if($rec_count>25){ ?>    
 					<p style="">
@@ -1111,7 +1167,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                 <div class="modal-content" style="border-radius: 4px;background-color: transparent;    padding: 0px;">
                                     <div class="modal-header" style="padding: 3px 3px 3px 16px;background-color:#99e1dc57;margin: 0px;">
                                         <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                        <h4 class="modal-title" style="color: #3a3939c4;">Statement</h4>
+                                        <h4 class="modal-title" style="color: #3a3939c4;"><?php echo $language['statement']; ?></h4>
                                     </div>
                                     <div style="background-color:#99e1dc;padding: 10px;min-height:695px;">
                                         
@@ -1125,7 +1181,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 <input type="text" id="barcode" autofocus style="display: inline-block;height: 50px;">
                                             </div>
                                             <div style="display: inline-block;height: 50px;">
-                                                <button style="width: 100px; height: 50px;background-color: #99e1dc;" id="add_invoice">Add</button>
+                                                <button style="width: 100px; height: 50px;background-color: #99e1dc;" id="add_invoice"><?php echo $language['add'];?></button>
                                             </div>
                                         </div>
                                         <form id="scan" style="height: 476px; padding-top: 10px;">
@@ -1133,9 +1189,9 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 <thead>
                                                 <thead style="background-color: #e8dfdf;">
                                                 <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 10%;">No</th>
-                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 30%;">InvoiceNumber</th>
-                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 30%;">Qty</th>
-                                                <th style="padding-left: 5px;">Amount</th>
+                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 30%;"><?php echo $language['invoice_number']; ?></th>
+                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 30%;"><?php echo $language['qty']; ?></th>
+                                                <th style="padding-left: 5px;"><?php echo $language['amount']; ?></th>
                                                 </thead>
                                                 </thead>
                                             </table>
@@ -1146,7 +1202,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 </table>
                                             </div>
 											 <div style="padding-top: 5px;    display: flex;">
-                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Total</span>
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;"><?php echo $language['total']; ?></span>
                                                 <span id="total_qty" style="font-size: 20px; width: 30%;    border: 1px solid;padding-left: 4px; border-left: none;"></span>
                                                  <input type="hidden" name="tol_qty1" id="tol_qty1" value="">
                                                 <span id="total_amount" style="font-size: 20px;width: 30%;        border: 1px solid;padding-left: 4px; border-left: none; border-bottom-right-radius: 2px; border-top-right-radius: 2px;"></span>
@@ -1154,7 +1210,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             </div>   
 
                                             <div style="padding-top: 5px;    display: flex;">
-                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid</span>
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;"><?php echo $language['paid']; ?></span>
                                                 <input type="text" id="paid2" value="0" class="amount" name="paid2" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
 											  <div style="padding-top: 5px;    display: flex;">
@@ -1162,7 +1218,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 		<input type="text" id="paidkoocoin" value="0" class="amount" readonly name="paidkoocoin" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
                                             <div style="padding-top: 5px;    display: flex;">
-                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Change</span>
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;"><?php echo $language['change']; ?></span>
                                                 <input type="text" id="change2" name="change" class="amount" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%; border: 1px solid #555555;padding-left: 4px;">
                                             </div>
                                             <!--div style="padding-top: 5px;    display: flex;">
@@ -1172,8 +1228,8 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             </div!-->
                                             <div class="modal-footer" style="padding-bottom:2px; border-top: none;padding: 0px;padding-top: 5px;">
                                                 <!--button style="width:200px;height:50px;background-color: #99e1dc;">Submit</button!-->
-												 <button id="amount_submit_button" class="<?php echo $p_class; ?>" style="width:261px;height:65px;background-color: #99e1dc;float: left;">Submit</button>
-												 <a  style="color:white;font-size:20px;width: 306px;height: 65px;float: left;" class="btn btn-primary status_ewallet">E-wallet</a>
+												 <button id="amount_submit_button" class="<?php echo $p_class; ?>" style="width:261px;height:65px;background-color: #99e1dc;float: left;"><?php echo $language['submit']; ?></button>
+												 <a  style="color:white;font-size:20px;width: 306px;height: 65px;float: left;" class="btn btn-primary status_ewallet"><?php echo $language['e_wallet']; ?></a>
 											 
                                             </div>
                                         </form>
@@ -1184,7 +1240,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             <table style="width: 100%;">
                                                 
                                                 <thead style="background-color: #e8dfdf;">
-                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 10%;">Calculator</th>
+                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 10%;"><?php echo $language['calculator']; ?></th>
                                                
                                                 </thead>
                                                
@@ -1266,37 +1322,37 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                 <div class="modal-content" style="border-radius: 4px;background-color: transparent;    padding: 0px;">
                                     <div class="modal-header" style="padding: 3px 3px 3px 16px;background-color:#296ca0;margin: 0px;">
                                         <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                        <h4 class="modal-title" style="color: #3a3939c4;">Statement</h4>
+                                        <h4 class="modal-title" style="color: #3a3939c4;"><?php echo $language['statement']; ?></h4>
                                     </div>
                                     <div style="background-color: #6dafe2;padding: 10px;">
                                         
 
                                         <div class="inline fields">
                                             <div style="display: inline-block;">
-                                                <label  style="display: inline-block;">Merchant ID :</label> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                                <label  style="display: inline-block;"><?php echo $language['merchant_id'];?> :</label> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                                 <input type="text" name="merchantid"  autofocus style="display: inline-block; height: 35px;" value="<?php echo $loginidset  ; ?>" readonly>
-                                                <button style="display: none; width: 100px; background-color: red;" id="">Merchant ID</button>
+                                                <button style="display: none; width: 100px; background-color: red;" id=""><?php echo $language['merchant_id'];?></button>
                                             </div>
                                             <div style="display: inline-block;margin-left: 8%;">
                                                 
-                                                <label style="display: inline-block;">Counter Number :</label>
+                                                <label style="display: inline-block;"><?php echo $language['counter_number'];?> :</label>
                                                 <input type="text" autofocus style="display: inline-block;height: 35px;" readonly>
-                                                <button style="display: none;background-color: red;" id="">Invoice</button>
+                                                <button style="display: none;background-color: red;" id=""><?php echo $language['invoice']; ?></button>
                                             </div>
                                             <div style="display: inline-block;">
-                                                <label style="display: inline-block;">Invoice Number :</label>
+                                                <label style="display: inline-block;"><?php echo $language['invoice_number']; ?> :</label>
                                                 <input type="text" id="invoice_num" class="invoice_num"  autofocus style="display: inline-block;height: 35px;">
-                                                <button style="background-color: red;height: 50px;" data-toggle="modal" data-target="#InvoiceModel" id="invoice">Invoice</button>
+                                                <button style="background-color: red;height: 50px;" data-toggle="modal" data-target="#InvoiceModel" id="invoice"><?php echo $language['invoice']; ?></button>
                                             </div>  
                                              
                                             <div style="display: inline-block;width:41%;">
                                                 &nbsp;
-                                                <label style="display: inline-block;">Table Number :</label>
+                                                <label style="display: inline-block;"><?php echo $language['long_table_number']; ?> :</label>
                                                 <input type="text" id="table_num" class="table_num" autofocus style="display: inline-block;height: 35px;">
-                                                <button style="background-color: green;height: 60px;width:23%" data-toggle="modal" data-target="#myModalt" id="table">Table</button>
+                                                <button style="background-color: green;height: 60px;width:23%" data-toggle="modal" data-target="#myModalt" id="table"><?php echo $language['table']; ?></button>
                                             </div>
                                             <div style="display: inline-block;">
-                                                <button style="background-color: #99e1dc;width:161px;height:50px;" id="add_invoicemy">Add</button>
+                                                <button style="background-color: #99e1dc;width:161px;height:50px;" id="add_invoicemy"><?php echo $language['add']; ?></button>
                                             </div>
                                         </div>
                                         <div class="col-sm-12">
@@ -1312,11 +1368,11 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 <thead>
                                                 <thead style="background-color: #e8dfdf;">
                                                 <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 8%;"><center>No</center></th>
-                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 45%;"><center>Username</center></th>
-                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 22%;"><center>Table Number</center></th>
-                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 18%;"><center>Invoice Number</center></th>
-                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 7%;"><center>Qty</center></th>
-                                                <th style="padding-left: 14px;"><center>Amount</center></th>
+                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 45%;"><center><?php echo $language['username']; ?></center></th>
+                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 22%;"><center><?php echo $language['table_number']; ?></center></th>
+                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 18%;"><center><?php echo $language['invoice_number']; ?></center></th>
+                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 7%;"><center><?php echo $language['qty']; ?></center></th>
+                                                <th style="padding-left: 14px;"><center><?php echo $language['amount']; ?></center></th>
                                                 </thead>
                                                 </thead>
                                             </table>
@@ -1328,29 +1384,58 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             </div>
 
                                             <div style="padding-top: 5px;    display: flex;">
-                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Total</span>
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;"><?php echo $language['total']; ?></span>
                                                 <span id="total_qty1" style="font-size: 20px; width: 30%;    border: 1px solid;padding-left: 4px; border-left: none;"></span>
                                                  <input type="hidden" name="tol_qty1" id="tol_qty1" value="">
                                                 <span id="total_amount1" style="font-size: 20px;width: 30%;        border: 1px solid;padding-left: 4px; border-left: none; border-bottom-right-radius: 2px; border-top-right-radius: 2px;"></span>
                                                  <input type="hidden" name="tol_mnt1" id="tol_mnt1" value="">
                                             </div>
-
-                                            <div style="padding-top: 5px;    display: flex;">
-                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid</span>
-                                                <input type="text" id="paid" value="0" class="amount" name="paid" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
+											<div style="padding-top: 5px;    display: flex;">
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Discount</span>
+                                                <input type="text" id="discount" value="0" class="amount changenumber" name="paid" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
+                                            </div>
+											<div style="display: flex;font-weight:bold;">
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Discount in %</span>
+                                                <input type="text" id="discountper" value='0' placeholder="Enter % Discount" class="amount changenumber" name="discountper" style=" font-size: 20px; width:9%;border: 1px solid #555555 ;padding-left: 4px;">%
+												<input type="hidden" id="discount_per_input" name="discount_per_input"/>
+												
+												<span id="discount_per" style="font-size: 20px; width: 30%;border: 1px solid;padding-left: 4px;margin-left:14%;"></span>
+                                               
+                                               
+												
+                                            </div>
+											<div style="padding-top: 5px;font-weight:bold;display: flex;" class="input-has-value">
+											    <select id="select_wallet" class="form-control" name="select_wallet" style="font-size:18px;">
+												<option value='-1'> Select Wallet</option>
+												<option  value='wechat'>Wechat</option>
+												<option  value='boostpay'>Boost Pay</option>
+												<option  value='grabpay'>Grab Pay</option>
+												<option  value='touch'>Touch & Go</option>
+												<option  value='fpx'>FPX</option>
+												</select>
+                                               
+												
+                                                <input type="text" id="wallet_paid" value="0" class="amount changenumber" name="wallet_paid_amount" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
                                             <div style="padding-top: 5px;    display: flex;">
-                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Change</span>
-                                                <input type="text" id="change" name="change" class="amount" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%; border: 1px solid #555555;padding-left: 4px;">
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;"><?php echo $language['paid']; ?></span>
+                                                <input type="text" id="paid" value="0" class="amount changenumber" name="paid" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
+                                            <div style="padding-top: 5px;    display: flex;">
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;"><?php echo $language['change']; ?></span>
+                                                <input type="text" readonly id="change" name="change" class="amount changenumber" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%; border: 1px solid #555555;padding-left: 4px;">
+                                            <input type="hidden" name="discount_amount" id="discount_amount" value="0"/>
+											<input type="hidden" name="paid_amount_pos" id="paid_amount_pos" value="0"/>
+											<input type="hidden" name="change_pos" id="change_pos" value="0"/>
+											</div>
 
                                             <div class="modal-footer" style="padding-bottom:2px; border-top: none;padding: 0px;padding-top: 5px;">
                                                 
-                                                <button type="button" style="width:200px;height:50px;background-color: #99e1dc;" data-dismiss="modal">Close</button>
+                                                <button type="button" style="width:200px;height:50px;background-color: #99e1dc;" data-dismiss="modal"><?php echo $language['close']; ?></button>
                                                <input type="submit" style="width:200px;height:50px;background-color: #99e1dc;" value="Print" onclick="this.form.target='_blank';return true;">
                                             
-                                                <input type="button" style="width:200px;height:50px;background-color: #99e1dc;"  value="Submit" class="<?php echo $p_class; ?>" <?php if($p_class==''){?> onclick="myFunction()" <?php } ?>>
-												<a style="color:white;font-size:20px;" class="status_ewallet btn btn-primary">E-wallet</a>
+                                                <input type="button" style="width:200px;height:50px;background-color: #99e1dc;"  value="<?php echo $language['submit']; ?>" class="<?php echo $p_class; ?>" <?php if($p_class==''){?> onclick="myFunction()" <?php } ?>>
+												<a style="color:white;font-size:20px;" class="status_ewallet btn btn-primary"><?php echo $language['e_wallet']; ?></a>
 											 
 											</div>
                                         </form>
@@ -1361,7 +1446,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             <table style="width: 100%;">
                                                 
                                                 <thead style="background-color: #e8dfdf;">
-                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 10%;">Calculator</th>
+                                                <th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 10%;"><?php echo $language['calculator']; ?></th>
                                                
                                                 </thead>
                                                
@@ -1416,8 +1501,8 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                 <div class="modal-content" style="width: 139%;">
                                     <div class="modal-header">
                                         <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                        <h4 class="modal-title">Pending Invoice</h4>
-                                        <button type="button" style="margin-right: 30%;width:130px;height:50px;background-color: #99e1dc;" data-dismiss="modal">Close</button>
+                                        <h4 class="modal-title"><?php echo $language['pending_invoice']; ?></h4>
+                                        <button type="button" style="margin-right: 30%;width:130px;height:50px;background-color: #99e1dc;" data-dismiss="modal"><?php echo $language['close']; ?></button>
                                     </div>
                                     <form id ="data">
                                         <div class="modal-body" style="padding-bottom:0px;">
@@ -1459,6 +1544,25 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                 </div>
                             </div>
                         </div>  
+						<div class="modal fade" id="orderdetailmodel" role="dialog">						
+							<div class="modal-dialog">
+							<!-- Modal content-->		
+							<div class="modal-content">	
+							<div class="modal-header">	
+							<button type="button" class="close" data-dismiss="modal">&times;</button>						
+							<h4 class="modal-title">Order Detail</h4>	
+							</div>					
+							<form id ="orderdetailform">		
+							<div class="modal-body" style="padding-bottom:0px;">
+							<div class="col-sm-10" id="orderdata">						
+											
+							</div>						
+												
+							</form>						
+							</div>						
+							</div>						
+							</div>
+						</div>
 						<div class="modal fade" id="deletemodel" role="dialog">						
 						<div class="modal-dialog">
 						<!-- Modal content-->		
@@ -1478,7 +1582,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 						</div>						
 						</div>						
 						<div class="modal-footer" style="padding-bottom:2px;">
-						<button>Submit</button>					
+						<button><?php echo $language['submit']; ?></button>					
 						</div>						
 						</form>						
 						</div>						
@@ -1504,19 +1608,42 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 						</div>						
 						</div>						
 						<div class="modal-footer" style="padding-bottom:2px;">
-						<button>Submit</button>					
+						<button><?php echo $language['submit']; ?></button>					
 						</div>						
 						</form>						
 						</div>						
 						</div>						
 						</div>
-						 <div class="modal fade" id="myModalt" role="dialog" >
+						<style type="text/css">
+						  .blank_table
+						  {
+							  background: green;
+							  padding: 2%;
+							  text-align: center;
+							  color:white;
+							  
+						  }
+						  .process_table
+						  {
+							  background: yellow;
+							  padding: 2%;
+							  text-align: center;
+						  }
+						  .pending_table
+						  {
+							   background: red;
+							  padding: 2%;
+							  text-align: center;
+							  color:white;
+						  }
+						</style>
+						<div class="modal fade" id="myModalt" role="dialog" >
                             <div class="modal-dialog modal-lg">
                                 
                                 <div class="modal-content">
                                     <div class="modal-header">
                                         <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                        <h4 class="modal-title">Pending Table</h4>
+                                        <h4 class="modal-title">Table Proccessing </h4>
                                         <button type="button" style="margin-right: 30%; width:130px;height:50px;background-color: #99e1dc;" data-dismiss="modal">Close</button>
                                     </div>
                                     <form id ="data">
@@ -1525,28 +1652,51 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 <div class="form-group" id="table_list">
 												<?php
 												   $Merchantid = $loginidset;
+												$total_table;
+												if($total_table>0)
+												{
+												foreach($section_data as $se)
+												{
+                                                    $sectionType=$se[1];
+													$UserID=$se[2];
+													$activeTableArray=[];	
+													$getActiveTable=mysqli_query($conn,"SELECT table_type from order_list where section_type='$sectionType' AND merchant_id='$UserID' AND status='0'");
+                                                    while($rowGetActivaTable=mysqli_fetch_assoc($getActiveTable))
+                                                    {
+                                                        $activeTableArray[]=$rowGetActivaTable["table_type"];
+                                                    }
+                                                    
+													echo "<p> Section ".$se[0]."</p><div class='row'>";
+													for($f=1;$f<=$total_table;$f++)
+													{
+														
+													   if(in_array($f,$activeTableArray))
+													   {
+															echo "<div title='order' class='col-md-1 pending_table' onclick='pending_table(".$f.",".$sectionType.",".$UserID.")' style='margin:1%'>".$f."</div>";													   
+													   }
+													   else
+													   {
+														   echo "<div title='order' class='col-md-1 blank_table'  style='margin:1%;'>".$f."</div>";													   
+													   }
+													}
+													echo "</div></br>";
+												}     
+												
+												} else
+												{
+													$sql = "select order_list.invoice_no,order_list.id,order_list.section_type,order_list.table_type,sections.name from order_list inner join sections on order_list.section_type=sections.id where order_list.status in(0,2) and order_list.merchant_id='$Merchantid' group by order_list.invoice_no order by sections.name asc limit 0,30";
+													$rel = mysqli_query($conn, $sql);
+													while($data = mysqli_fetch_assoc($rel))
+													{   
+															$show_value=$data['invoice_no']."-".$data['name']."-".$data['table_type'];
+													   // print_R($data);
 
-        
+														echo ' <input type="button" style="margin: 10px; background-color:#296ca0;" class="btn btn-info" name="tbl" data-invoce="'.$data['invoice_no'].'" data-id="'.$data['id'].'" data-section="'.$data['section_type'].'"  data-table="'.$data['table_type'].'"  value="'.$show_value.'">';
 
-	    $sql = "select order_list.invoice_no,order_list.id,order_list.section_type,order_list.table_type,sections.name from order_list inner join sections on order_list.section_type=sections.id where order_list.status in(0,2) and order_list.merchant_id='$Merchantid' group by order_list.invoice_no order by sections.name asc limit 0,30";
+														
 
-	$rel = mysqli_query($conn, $sql);
-
-
-
-
-
-		while($data = mysqli_fetch_assoc($rel))
-
-		{   
-				$show_value=$data['invoice_no']."-".$data['name']."-".$data['table_type'];
-		   // print_R($data);
-
-		    echo ' <input type="button" style="margin: 10px; background-color:#296ca0;" class="btn btn-info" name="tbl" data-invoce="'.$data['invoice_no'].'" data-id="'.$data['id'].'" data-section="'.$data['section_type'].'"  data-table="'.$data['table_type'].'"  value="'.$show_value.'">';
-
-		    
-
-		}
+													}
+												}
 												?>
 												</div>
                                             </div>
@@ -1558,7 +1708,32 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                 </div>
                             </div>
                         </div>
-                          <!---amit code end--->
+                        <!---amit code end--->
+                        <!---vikas code-->
+                        <div class="modal fade" id="myModalTable" role="dialog" >
+                            <div class="modal-dialog modal-lg">
+                                
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                        <h4 class="modal-title" id="VTitle">Table Proccessing</h4>
+                                        <button type="button" class="btn btn-success selectAll" id="selectAll" value="0" style="margin-right: 30%; width:130px;height:50px;background-color: #313a46;border-color: #313a46;">Select All</button>
+                                        <!-- <button type="button" style="margin-right: 30%; width:130px;height:50px;background-color: #99e1dc;" data-dismiss="modal">Close</button> -->
+                                    </div>
+                                    <form id ="data">
+                                        <div class="modal-body" style="padding-bottom:0px;margin-bottom: 15px;">
+                                            <div class="col-sm-12" id="VBody">
+                                                
+                                            </div>
+                                        </div>
+                                        <!-- <div class="modal-footer" style="padding-bottom:2px;">
+                                           
+                                        </div> -->
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                          <!---vikas code end--->
 						  
                         <div class="modal fade" id="AmountModal" role="dialog">
                             <div class="modal-dialog">
@@ -1572,7 +1747,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                         <div class="modal-body" style="padding-bottom:0px;">
                                             <div class="col-sm-10">
                                                 <div class="form-group">
-                                                    <label>Amount</label>
+                                                    <label><?php echo $language['amount']; ?></label>
                                                     <input type="text" name="amount" id = "amount" class="form-control" value="" required>
                                                     <input type="hidden" id="id" name="id" value="">
                                                     <input type="hidden" id="p_id" name="p_id" value="">
@@ -1580,7 +1755,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             </div>
                                         </div>
                                         <div class="modal-footer" style="padding-bottom:2px;">
-                                            <button>Submit</button>
+                                            <button><?php echo $language['submit']; ?></button>
                                         </div>
                                     </form>
                                 </div>
@@ -1590,7 +1765,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                             <div class="modal-dialog modal-lg">
                                 <div class="modal-content" id="modalcontent">
                                     <div class="modal-footer">
-                                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                        <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo $language['close']; ?></button>
                                     </div>
                                 </div>
                             </div>
@@ -1598,7 +1773,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 						
                     </div>
 				     <div class="fixside" id="fixside" style="display:none;">
-					  <form id="formside" style="" method="POST" action="">
+					  
 					    <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title font-weight-bold" id="exampleModalLabel">Status Processing</h5>
@@ -1610,11 +1785,10 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 										 <table class="table">
     <thead>
       <tr>
-        <th>No</th>
-        <th>TBL</th>
-        <th>INV</th>
-        <th>QTY</th>
-        <th>AMT</th>
+        <th><?php echo $language['table_number']; ?></th>
+        <th><?php echo $language['invoice_number']; ?></th>
+        <th><?php echo $language['qty']; ?></th>
+        <th><?php echo $language['amount']; ?></th>
       </tr>
     </thead>
     <tbody id="pending_data">
@@ -1633,23 +1807,53 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                  <input type="hidden" name="tol_qty3" id="tol_qty3" value="">
                                                 <span id="total_amount3" style="font-size:20px;width: 30%;        border: 1px solid;padding-left: 4px; border-left: none; border-bottom-right-radius: 2px; border-top-right-radius: 2px;"></span>
                                                  <input type="hidden" name="tol_mnt3" id="tol_mnt1" value="">
+												 <input type="hidden" name="discount_amount" id="discount_amount_2" value="0"/>
+											<input type="hidden" name="paid_amount_pos" id="paid_amount_pos_2" value="0"/>
+											<input type="hidden" name="change_pos" id="change_pos_2" value="0"/>
+                                            </div>
+											<div style="padding-top: 5px;    display: flex;">
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Discount</span>
+                                                <input type="text" id="discount_2" value="0" class="amount changenumber2" name="paid" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
+                                            </div>
+											<div style="display: flex;font-weight:bold;">
+                                                <span style="font-size:14px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Discount in %</span>
+                                                <input type="text" id="discountper_2" value='0' placeholder="Enter % Discount" class="amount changenumber2" name="discountper" style=" font-size: 20px; width:17%;border: 1px solid #555555 ;padding-left: 4px;">%
+												<input type="hidden" id="discount_per_input_2" name="discount_per_input"/>
+												
+												<span id="discount_per_2" style="font-size: 20px; width: 30%;border: 1px solid;padding-left: 4px;margin-left:14%;"></span>
+                                               
+                                               
+												
+                                            </div>
+											<div style="padding-top: 5px;font-weight:bold;display: flex;" class="input-has-value">
+											    <select id="select_wallet_2" class="form-control" name="select_wallet_2" style="font-size:18px;">
+												<option value='-1'> Select Wallet</option>
+												<option  value='wechat'>Wechat</option>
+												<option  value='boostpay'>Boost Pay</option>
+												<option  value='grabpay'>Grab Pay</option>
+												<option  value='touch'>Touch & Go</option>
+												<option  value='fpx'>FPX</option>
+												</select>
+                                               
+												
+                                                <input type="text" id="wallet_paid_2" value="0" class="amount changenumber2" name="wallet_paid_amount" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
 
                                             <div style="padding-top: 5px;font-weight:bold;display: flex;" class="input-has-value">
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid</span>
-                                                <input type="text" id="paid3" value="0" class="amount" name="paid" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
+                                                <input type="text" id="paid_2" value="0" class="amount changenumber2" name="paid" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
-											 <div style="padding-top: 5px;    display: flex;">
+											 <!--div style="padding-top: 5px;    display: flex;">
                                                 <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid By Koocoin</span>
                                                 <input type="text" id="paidkoocoin3" value="0" class="amount" name="paidkoocoin3" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
-                                            </div>
+                                            </div!-->
 											
                                             <div style="padding-top: 5px;font-weight:bold;display: flex;">
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid;border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Change</span>
-                                                <input type="text" id="change3" name="change" class="amount" style=" font-size: 20px; width: 37%;margin-left: 23%; border: 1px solid #555555;padding-left: 4px;">
+                                                <input type="text" readonly id="change3" name="change" class="amount changenumber2" style=" font-size: 20px; width: 37%;margin-left: 23%; border: 1px solid #555555;padding-left: 4px;">
                                             </div>
 											<br>
-											<input type="submit" class="btn btn-primary btn-md waves-effect waves-light <?php if($process_password_need){ echo "process_password_need";}?>" value="Submit">
+											<input type="submit" class="status_pay_submit btn btn-primary btn-md waves-effect waves-light <?php if($process_password_need){ echo "process_password_need";}?>" value="<?php echo $language['submit']; ?>">
                                             <!--a  style="color:white;" class="btn btn-primary status_ewallet">E-wallet</a!-->
 											 
 			  </div>
@@ -1660,7 +1864,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             <table style="width: 100%;">
                                                 
                                                 <thead style="background-color: #e8dfdf;">
-                                                <tr><th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 10%;">Calculator</th>
+                                                <tr><th style="border-right: 2px solid #afa4a4;padding-left: 5px;width: 10%;"><?php echo $language['calculator']; ?></th>
                                                
                                                 </tr></thead>
                                                
@@ -1709,7 +1913,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
               
 		
     </div>
-	</form>
+
 					 </div>
 								<audio id="my_audio" src="<?php echo $site_url;?>/sound.mp3" autostart="0"></audio>  
                 <?php if($alaram_required=="y"){ ?>								
@@ -1936,6 +2140,12 @@ var product_name = $("input[name='product_name[]']")
 
 var qtyno = $("input[name='qtyno[]']")
               .map(function(){return $(this).val();}).get(); 
+    var select_wallet=$('#select_wallet').val();
+    var discount_amount=$('#discount_amount').val();
+    var wallet_paid_amount=$('#wallet_paid_amount').val();
+    var total_amount=$('#total_amount1').val();
+    var paid_amount_pos=$('#paid_amount_pos').val();
+    var change_pos=$('#change_pos').val();
  //  if (paid == '' || orderid == '' ) {
 //alert("Something went wrong");
 //}else{        
@@ -1943,7 +2153,7 @@ var qtyno = $("input[name='qtyno[]']")
           $.ajax({
           type: "POST",
           url: "statement_data.php",
-          data: {statementid:statementid, merchant_ses:merchant_ses, paid:paid, change:change, tol_qty:tol_qty, tol_mnt: tol_mnt ,statementid:statementid, product_name:product_name, product_code:product_code, user:user, remark:remark, tablety:tablety, invo:invo, orderid:orderid, section:section, qtyno:qtyno,total:total },
+          data: {total_amount:total_amount,select_wallet:select_wallet,discount_amount:discount_amount,wallet_paid_amount:wallet_paid_amount,paid_amount_pos:paid_amount_pos,change_pos:change_pos,statementid:statementid, merchant_ses:merchant_ses, paid:paid, change:change, tol_qty:tol_qty, tol_mnt: tol_mnt ,statementid:statementid, product_name:product_name, product_code:product_code, user:user, remark:remark, tablety:tablety, invo:invo, orderid:orderid, section:section, qtyno:qtyno,total:total },
           cache: false,
           success: function(data) {
           // alert(data);
@@ -2080,7 +2290,19 @@ var qtyno = $("input[name='qtyno[]']")
     function hasClass(element, className) {
         return (' ' + element.className + ' ').indexOf(' ' + className + ' ') > -1;
     }
+	function percentage(num, per) {
+	return (num/100)*per;
+	} 
     $(document).ready(function(){
+        var local_id=localStorage.getItem("login_cache_id");
+	    // alert(local_id);
+		if(local_id=='' || local_id==null)
+		{
+			localStorage.setItem('login_cache_id','<?php echo $_SESSION['login'];?>');
+			localStorage.setItem('login_role_id','<?php echo "2";?>');
+		}
+        // localStorage.setItem('login_user_role','<?php echo $_SESSION['login'];?>'); 
+        
 		 var cash_match='<?php echo $cash_match;?>';
 		var cash_id=$('#cash_id').val();
 		// alert(cash_id);
@@ -2120,6 +2342,78 @@ var qtyno = $("input[name='qtyno[]']")
 			alert('Opening Balance is Required To start');
 		}
 	});
+	$(".changenumber").on("keyup", function(){
+		// alert(3);
+		   var dis_per =$("#discountper").val();
+		    var dis_num =$("#discount").val();
+		    var tol = document.getElementById("total_amount1").innerText;
+			var perc = percentage(tol,dis_per).toFixed(2);
+			// alert(perc);  
+			$('#discount_per_input').val(perc);
+			$('#discount_per').html(perc);
+			var paid3=$('#paid').val();   
+			var paidkoocoin=$("#wallet_paid").val();
+			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
+			  var mb = $('#viewer').text();
+		// alert(mb);
+		    		  // var final = parseFloat(tol)-parseFloat(total_paid);
+		    		  // var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
+		    		  // var final =(parseFloat(paid3)+parseFloat(paidkoocoin))-(parseFloat(tol)+parseFloat(dis_num));
+					  //  Total - discount - discount by percentage( to be created by you)-Boost pay-Cash paid
+					 
+		    		  var final =parseFloat(tol)-parseFloat(dis_num)-parseFloat(perc)-parseFloat(paidkoocoin)-parseFloat(paid3);
+                var value = Math.abs(final);
+                      var v = value.toFixed(2);
+					  // alert(v);
+                      $('#change').val(v);
+		$('#paid_amount_pos').val(paid3);
+		$('#change_pos').val(v);
+		$('#discount_amount').val(dis_num);
+	 });
+	$(".changenumber2").on("keyup", function(){
+		// alert(3);
+		   var dis_per =$("#discountper_2").val();
+		    var dis_num =$("#discount_2").val();
+		    var tol = document.getElementById("total_amount3").innerText;
+			var perc = percentage(tol,dis_per).toFixed(2);
+			// alert(perc);  
+			$('#discount_per_input').val(perc);
+			$('#discount_per_2').html(perc);
+			var paid3=$('#paid_2').val();   
+			var paidkoocoin=$("#wallet_paid_2").val();  
+			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
+			  var mb = $('#viewer3').text();
+		// alert(total_paid);
+		    		  // var final = parseFloat(tol)-parseFloat(total_paid);
+		    		  // var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
+		    		  // var final =(parseFloat(paid3)+parseFloat(paidkoocoin))-(parseFloat(tol)+parseFloat(dis_num));
+					  //  Total - discount - discount by percentage( to be created by you)-Boost pay-Cash paid
+					 
+		    		  var final =parseFloat(tol)-parseFloat(dis_num)-parseFloat(perc)-parseFloat(paidkoocoin)-parseFloat(paid3);
+                var value = Math.abs(final);
+                      var v = value.toFixed(2);
+					  // alert(v);
+                      $('#change3').val(v);  
+		$('#paid_amount_pos_2').val(paid3);
+		$('#change_pos_2').val(v);
+		$('#discount_amount_2').val(dis_num);
+	 });
+	  $(".s_order_detail").click(function(e){
+		  var s_id = $(this).attr('order_id');
+		  // alert(s_id);
+		  $.ajax({
+                        type: "POST",
+                        url: "singleorder.php",
+                        data: {s_id:s_id},
+                        success: function(data) {
+							$('#orderdata').html(data);
+                        },
+                        error: function(result) {
+                            alert('error');
+                        }
+                });
+		  $("#orderdetailmodel").modal("show"); 
+	  });
 		$("#apply_criteria").on("click", function(e){
 			e.preventDefault();
 			var criteria = $("#criteria_field").find("option:selected").attr("val");
@@ -2153,7 +2447,7 @@ var qtyno = $("input[name='qtyno[]']")
 						}
 					} );
 				}, 5000);
-		}
+		}  
 		      
 		     setInterval(function() {
 				 // alert('new');
@@ -2217,7 +2511,7 @@ var qtyno = $("input[name='qtyno[]']")
 			 var formData = new FormData(this);
 			var process_password=$('#process_password').val();
 			var scan_type=$('#scan_type').val();
-			var dbpass="<?php echo $merchant_name['process_password'];?>";
+			var dbpass="<?php echo $merchant_name['fund_password'];?>";
 			if(dbpass==process_password)
 			{
 				var data = {process_password: $("#process_password").val(),idprocesspass: $("#idprocesspass").val()};
@@ -2321,10 +2615,12 @@ var qtyno = $("input[name='qtyno[]']")
 		
 		 $("#scan_order1").click(function() {
 			 $('#selected_invoice_id').val('');
+			  $('#paid').val(0);        
 			  $('#scan_type').val('invo');        
              // $("#selected_invoice_id").val();
             $("#myScanModal1").modal("show");
             $("#total_qty1").text('');
+            $("#viewer").text('');
 			
             $("#scanned_data1").html('');
             $("#total_amount1").text('');
@@ -2351,6 +2647,7 @@ var qtyno = $("input[name='qtyno[]']")
 			
 			if(mobile_num)
 			{
+				  $(this).attr("disabled", "disabled");
 				$.ajax({
 					  type: "POST",    
 					  url: "functions.php",
@@ -2385,7 +2682,7 @@ var qtyno = $("input[name='qtyno[]']")
 					  }
 				});
 						}
-		});
+		});  
 		 $("#invoice").click(function(){
 
                  $("#InvoiceModel").show();
@@ -2424,7 +2721,7 @@ var qtyno = $("input[name='qtyno[]']")
             });
 			 $("#add_invoicemy").click(function() {  
 
-                     var invoice_num = $(".invoice_num").val();
+                    var invoice_num = $(".invoice_num").val();
                     var table_num = $(".table_num").val();
                     var q = table_num.match(/[a-z]+|\d+/ig);
 
@@ -2533,7 +2830,7 @@ var qtyno = $("input[name='qtyno[]']")
                      $('#paid').val(mb);
                    
                      var tol = document.getElementById("total_amount1").innerText;
-               
+                     // alert(tol);
                       var final = parseFloat(tol)-parseFloat(mb);
                       var value = Math.abs(final);
                       var v = value.toFixed(2);
@@ -2575,7 +2872,7 @@ var qtyno = $("input[name='qtyno[]']")
                     // alert(2);
                        var mb = $('#viewer3').text();
 					  // alert(mb);
-                     $('#paid3').val(mb);
+                     $('#paid_2').val(mb);
                    
                      var tol = document.getElementById("total_amount3").innerText;
                
@@ -2725,6 +3022,7 @@ var qtyno = $("input[name='qtyno[]']")
 
                                     
                                      $('#myModalt').modal('hide');
+                                     $('#myModalTable').modal('hide');
                                   }
 
 
@@ -2762,6 +3060,248 @@ var qtyno = $("input[name='qtyno[]']")
 		//var prodid=$(this).data("prodid");   
 		$("#tbl").val("");          
 		$("#idspecialpass").val(dataid);             
+		});
+
+    $("#selectAll").click(function(){
+      $(".testClass").each(function(i) {
+          var btn = $(this);
+          $(this).css({"background-color": "gray"});
+          setTimeout(btn.trigger.bind(btn, "click"), i * 100);
+      });
+      var val = $(this).val();
+      if(val == 0){
+        $('input[name=chkTest]').attr('checked', true);
+        $("#selectAll").val(1);
+      }
+      else{
+        $('input[name=chkTest]').attr('checked', false);
+        $("#selectAll").val(0);
+      }
+    });
+
+    // $("#selectAll").click(function() {
+    //   $(".chkTest").prop("checked", $("#selectAll").prop("checked"));
+    // });
+
+
+    Array.prototype.remove = function() {
+        var what, a = arguments, L = a.length, ax;
+        while (L && this.length) {
+            what = a[--L];
+            while ((ax = this.indexOf(what)) !== -1) {
+                this.splice(ax, 1);
+            }
+        }
+        return this;
+    };
+		$('body').on("click", "input[name=tblbulk]",function(e){  
+      
+			var x=$(this);
+			var tbl = $(this).attr("data-table");
+            var data_id = $(this).attr("data-id");
+			var invo = $(this).attr("data-invoce");
+			var section = $(this).attr("data-section");
+			 $('#invoice_num').val(invo);
+			 var invoice_num = $(".invoice_num").val();
+			 // alert(invoice_num);
+			 
+			$.ajax({
+				     
+                        type: "POST",
+                        url: "fetch.php",
+                        data: {invoice_num:invo,section_num:section},
+                        success: function(data) {
+                           // alert(data);
+                        // print normal order 
+						  
+                            if( data != null ) {
+                                var obj = JSON.parse( data );
+                                // alert(obj);
+                                if( obj.length > 0 ) {
+                                    var order = obj[0];
+                                
+                                    var total = 0;
+                                    var totalQty = 0;
+                                    var qtyOfInvoice = 0;
+                                    var flag = 0;
+									                 $("#scanned_data1").find("tr").each(function () {
+                                    var td1 = $(this).find("td:eq(0)").text();
+                                    var td2 = $(this).find("td:eq(1)").text();
+                                    var td3 = $(this).find("td:eq(2)").text();
+                                    var td4 = $(this).find("td:eq(3)").text();
+                                    var td5 = $(this).find("td:eq(4)").text();
+                                    var td6 = $(this).find("td:eq(5)").text();
+                                    var td7 = $(this).find("td:eq(6)").text();
+                                    var td8 = $(this).find("td:eq(7)").text();
+                                    var td9 = $(this).find("td:eq(8)").text();
+                                    var td10 = $(this).find("td:eq(9)").text();
+                                    var td11 = $(this).find("td:eq(10)").text();
+                                      
+                                 //   var tb3 = td3.length;
+                                   // var tabl_num = table_num.length;
+                                      var trid = $(this).attr('id');
+									  // alert(invoice_num);   
+									  // alert('invoce');
+									  // alert(td4);
+                                 if ((invoice_num == td4)) {
+                                        flag = 1;
+                                    }
+                                });
+                                if (flag == 1) {
+									           $(this).css({"background-color": "#296ca0"});    
+                                    alert('Already Exists');
+                                    $("#invoice_num").val('');
+
+                                    $("#table_num").val('');
+
+                                } else {
+									
+                                  if($(x).attr("data-status") == 'notset'){
+                                    $(x).css({"background-color": "gray"}); 
+                                    $(x).attr("data-status","yesset");
+                                    var i = $(x).attr("data-i");
+                                    $("#chkTest"+i).prop("checked", true);
+                                    var selected_invoice_id_=$('#selected_invoice_id').val();
+                                    var selected_invoice_id=$('#selected_invoice_id').val().split(",");
+                                    var data_id = $(x).attr("data-id");
+                                    var arr='';
+                                    if(selected_invoice_id_ != '')
+                                    {
+                                      arr +=","+data_id;
+                                      $('#selected_invoice_id').val(selected_invoice_id_+arr);
+                                    }
+                                    else
+                                    {
+                                       arr += data_id;
+                                       $('#selected_invoice_id').val(arr);
+                                    }
+                                  }
+                                  else{
+                                    $(x).css({"background-color": "#296ca0"});
+                                    $(x).attr("data-status","notset");
+                                    var i = $(x).attr("data-i");
+                                    $("#chkTest"+i).prop("checked", false);
+                                    var selected_invoice_id=$('#selected_invoice_id').val().split(",");
+                                    var data_id = $(x).attr("data-id");
+                                    var arr='';
+                                    selected_invoice_id.remove(data_id);
+                                    arr = selected_invoice_id.join();
+                                    $('#selected_invoice_id').val(arr);
+                                  }
+									// var selected_invoice_id=$('#selected_invoice_id').val();
+									// if(selected_invoice_id)
+									// {
+									// 	var new_in_id=selected_invoice_id+","+data_id;
+									// }
+									// else
+									// {
+									// 	var new_in_id=data_id;
+									// }
+									// $('#selected_invoice_id').val(new_in_id);	
+                                }
+
+
+                                }
+                            }
+ 
+
+                        },
+                        error: function(result) {
+                            alert('error');
+                        }
+                    });
+			
+		});
+		$('body').on("click", "#submit_bulk",function(e){
+			var all_invoice=$('#selected_invoice_id').val();
+			if(all_invoice)
+			{
+				
+                 $.ajax({
+                        type: "POST",
+                        url: "bulkadd.php",
+                       data: {all_invoice:all_invoice},
+					   dataType : 'json', 
+                        success: function(data) {
+							var obj = JSON.parse(JSON.stringify(data));
+							 var total = 0;
+                                    var totalQty = 0;
+                                    var qtyOfInvoice = 0;
+                                    
+                                    var flag = 0;
+							if(obj.status==true)
+							{
+								
+								var total_count=obj.record.length;
+								 var forder =obj.record;
+								// alert(total_count);
+								// alert(order['product_name']);​
+								  for (var j = 0, len = total_count; j< total_count; j++) {
+									  // alert(j);
+									   var order=forder[j];
+										for( var i = 0 ; i < order['product_name'].length ; i ++ ) {
+											var amount = 0;
+											if( order['product_qty'][i] && order['product_amt'][i] ) {
+												amount = order['product_qty'][i] * order['product_amt'][i];
+											} else {
+												amount = 0;
+											}
+											total += amount;
+											total=parseFloat(total.toFixed(2));
+											totalQty += parseInt(order['product_qty'][i]);
+											qtyOfInvoice += parseInt(order['product_qty'][i]);
+										}
+										 var total_amount =  empty($("#total_amount1").text()) ? 0 : parseFloat($("#total_amount1").text());
+                                    total_amount += total;
+                                    // total = total.toFixed(2);
+									// alert(total_amount);
+									$("#paid_wallet_amount").val(total_amount.toFixed(2));
+                                    $("#total_amount1").text(total_amount.toFixed(2));
+									var paid=$("#paid").val();
+									// alert(paid);
+									if(paid >0)
+									{
+										var pending= paid-(total_amount.toFixed(2));
+										$("#change").val(pending);
+									}   
+                                    var total_qty =  empty($("#total_qty1").text()) ? 0 : parseInt($("#total_qty1").text());
+                                    total_qty += qtyOfInvoice;
+                                    $("#total_qty1").text(parseInt(total_qty));
+
+
+                                   var i=1;
+                                    var list =
+                                        '<tr><td style="text-align:center; padding-left: 5px;width: 8%;" >' + parseInt(document.getElementById("scanned_data1").childElementCount + 1) + '</td>' +
+                                        '<td style=" padding-left: 5px;width: 42%;" id="test" class="btl"><input type="hidden" name="user[]" value="'+ order['username'] +'">' + order['username'] + '</td>' +
+                                         '<td style=" text-align:center;padding-left: 5px;width: 22%;"><input type="hidden" name="tablety[]" value="' + order['table_type'] + '">' + order['section_type'] + ''+order['table_type']+'</td>' +
+                                        '<td style="text-align:center; padding-left: 5px;width: 21%;"><input type="hidden" name="invo[]" value="' + order['invoice_no'] + '">' + order['invoice_no'] + '</td>' +
+                                        '<td style="display: none"><input type="hidden" name="orderid[]" value="' + order['id'] +'">' + order['id'] +'</td>' +
+                                        '<td style="display: none"><input type="hidden" name="section[]" value="' + order['section_type'] +'">' + order['section_type'] +'</td>' +
+                                        '<td style="display: none"><input type="hidden" name="product_code[]" value="' + order['product_code'] +'">' + order['product_code'] +'</td>' +
+                                        '<td style="display: none"><input type="hidden" name="remark[]" value="' + order['remark'] +'">' + order['remark'] +'</td>' +
+                                        '<td style="display: none"><input type="hidden" name="product_name[]" value="' + order['product_name'] +'">' + order['product_name'] +'</td>' +
+                                        '<td style="text-align:center; padding-left: 5px;width: 7%;"><input type="hidden" name="qtyno[]" value="' + parseInt(qtyOfInvoice) + '">' + parseInt(qtyOfInvoice) + '</td>' +
+                                        '<td  ref="total" style="text-align:center; padding-left: 42px;"><input type="hidden" name="total[]" value="' + total +  '">' + total +  '</td></tr>';
+
+                                          $("#scanned_data1").append(list);
+                                          $("#invoice_num").val('');
+                                           $("#table_num").val('');
+                                          $('#myModalTable').modal('hide');
+										  $('#selected_invoice_id').val('');
+										  // alert(j);
+									}
+							}
+							
+                    },
+                    error: function(result) {
+                        alert('error');
+                      }
+					});
+			}
+			else
+			{
+				alert('Add Invoice First');
+			}
 		});
 		$('body').on("click", "input[name=invo]",function(e){
 						 e.preventDefault();
@@ -3134,7 +3674,7 @@ var qtyno = $("input[name='qtyno[]']")
                                     }
                                     // alert(data);
 									alert("Your order has been printed.");
-									 location.reload(); 
+									 // location.reload(); 
                                 },
                                 error: function(data){
                                     console.log(data);
@@ -3197,6 +3737,35 @@ var qtyno = $("input[name='qtyno[]']")
 				  }
            
         });
+		$("body").on('click','.status_pay_submit',function(e){
+			var all_invoice=$('#selected_invoice_id').val();
+			// alert(all_invoice);
+			var select_wallet=$('#select_wallet_2').val();
+			// var select_wallet=$('#select_wallet').val();
+			var discount_amount=$('#discount_amount_2').val();
+			var wallet_paid_amount=$('#wallet_paid_2').val();
+			var total_amount=document.getElementById("total_amount3").innerText;
+			var paid_amount_pos=$('#paid_amount_pos_2').val();
+			var change_pos=$('#change_pos_2').val();
+			if(all_invoice)
+			{
+				$.ajax({
+				  type: "POST",
+				  url: "functions.php",
+				  data: {method:"bulkprocess",total_amount:total_amount,select_wallet:select_wallet,discount_amount:discount_amount,wallet_paid_amount:wallet_paid_amount,paid_amount_pos:paid_amount_pos,change_pos:change_pos,all_invoice:all_invoice},
+				  cache: false,
+				  success: function(data) {
+				  // alert(data);
+				 location.reload();
+				  }
+				  });
+			}
+			else
+			{
+				alert('Add Invoice First');
+			}
+			
+		});
         $("body").on('click','.status',function(e){
 			e.preventDefault();
 			var process_password_need='<?php echo $process_password_need ?>';
@@ -3227,9 +3796,13 @@ var qtyno = $("input[name='qtyno[]']")
 		       // alert(tbl);
 			var invo = $(this).attr("data-invoce")
             var status = $(this).attr("status");
+			// alert(status);
+			// return false;
 			if(status==0)
 			{
 			$('.fixside').show();
+			var select_wallet_2=$('#select_wallet_2').val();
+			// alert(select_wallet_2);
 			 $.ajax({
                         type: "POST",
                         url: "fetch.php",
@@ -3241,7 +3814,7 @@ var qtyno = $("input[name='qtyno[]']")
 								 $.ajax({
 								url : 'update_status.php',
 								type: 'POST',
-								data: {id:data_id, status: 1},
+								data: {id:data_id, status: 1,select_wallet_2:select_wallet_2},
 								success:function(data){
 									//~ alert(1);
 									// location.reload();
@@ -3356,7 +3929,7 @@ var qtyno = $("input[name='qtyno[]']")
                         }
                     });
 			}
-			else
+			else   
 			{
 				 $.ajax({
                     url : 'update_status.php',
@@ -3436,7 +4009,30 @@ var qtyno = $("input[name='qtyno[]']")
     });
 </script>
 <script>
-    
+    function pending_table(id,section,mid)
+    {
+        $.ajax({
+                url: 'getTableInfo.php',
+                type: 'post',
+                data: {id:id, section:section, mid:mid},
+                success: function (data) {
+                    
+					   if(data.responseCode == 1){
+                        $("#VTitle").html(data.section);
+                        $("#VBody").html(data.data);
+                        $("#myModalt").modal("hide");
+                        $("#myModalTable").modal("show");
+						
+                        // reloadData(merchant_id,site_url);
+                    }else{
+                        alert("An error occured, try again later");
+                        console.log(data);
+                    }
+                    
+                }
+            });
+        
+    }
     </script>
 <script>
     /*window.setInterval('refresh()', 60000);

@@ -17,7 +17,7 @@ $_SESSION['pos']="y";
  $_SESSION['mm_id']= $loginidset;
  $merchant_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$loginidset."'"));
 $stock_inventory=$merchant_data['stock_inventory'];
-$user_roles=$merchant_data['user_roles'];
+$user_roles=$profile_data['user_roles'];
 	// $_SESSION['mm_id']= $_SESSION['login']; //merchant id
     $date = date('Y-m-d H:i:s');
 	$location =$_POST['location'];
@@ -96,10 +96,25 @@ $user_roles=$merchant_data['user_roles'];
 	// if($remark_val==",")
 		// $remark_val='';
 	 $m_id=$_SESSION['mm_id'];
-	 $sql = "SELECT MAX(invoice_seq) invoice_seq
+		$discount_amount=$_POST['discount_amount'];
+		$paid_amount_pos=$_POST['paid_amount_pos'];
+		$change_pos=$_POST['change_pos'];
+		if($discount_amount)
+		$discount_amount=number_format($discount_amount,2);
+	
+	   $doublein="select id from order_list where created_timestamp > date_sub(now(), interval 1 minute) 
+	  and wallet='$pay_mode' and wallet_paid_amount='$wallet_paid_amount' and paid_amount_pos='$paid_amount_pos' and change_pos='$change_pos' and
+	  discount_amount='$discount_amount' and status='$status' and order_place='poslocal' and product_id='$pro_id' and user_id='$m_id' and merchant_id='$m_id' and 
+	  quantity='$qty' and amount='$price' and remark='$remark_val' and table_type='".$table_type."' and section_type='$section_type'";
+	 // die;
+	 $double_invoice_count = mysqli_num_rows(mysqli_query($conn, $doublein));
+		// $double_invoice_count=0;
+		if($double_invoice_count==0)
+		{
+			$sql = "SELECT MAX(invoice_seq) invoice_seq
             FROM order_list
             WHERE merchant_id = '$m_id'";
-	 $invoice_seq = mysqli_fetch_assoc(mysqli_query($conn, $sql))['invoice_seq'];
+			$invoice_seq = mysqli_fetch_assoc(mysqli_query($conn, $sql))['invoice_seq'];
 			
 			// $inv=explode('_',$invoice_no);
 			// $invoice_no=$inv[0];
@@ -107,89 +122,80 @@ $user_roles=$merchant_data['user_roles'];
 			else $invoice_seq += 1;
 			$invoice_no=$invoice_seq."L";
 			$invoice_seq=$invoice_seq;
-
-    $discount_amount=$_POST['discount_amount'];
-    $paid_amount_pos=$_POST['paid_amount_pos'];
-    $change_pos=$_POST['change_pos'];
-	if($discount_amount)
-		$discount_amount=number_format($discount_amount,2);
-	
-	 $sqlFinalIns = "INSERT INTO order_list SET wallet='$pay_mode',wallet_paid_amount='$wallet_paid_amount',paid_amount_pos='$paid_amount_pos',change_pos='$change_pos',discount_amount='$discount_amount',status='$status',order_place='poslocal',product_id='$pro_id',  user_id='$m_id', merchant_id='$m_id', quantity='$qty', amount='$price', remark='$remark_val',table_type='".$table_type."',section_type='$section_type',created_on='$date', invoice_no='$invoice_no',invoice_seq='$invoice_seq',varient_type='$v_str',product_code='$p_code'";
-  
-		 $test_method = mysqli_query($conn, $sqlFinalIns);
+			$sqlFinalIns = "INSERT INTO order_list SET wallet='$pay_mode',wallet_paid_amount='$wallet_paid_amount',paid_amount_pos='$paid_amount_pos',change_pos='$change_pos',discount_amount='$discount_amount',status='$status',order_place='poslocal',product_id='$pro_id',  user_id='$m_id', merchant_id='$m_id', quantity='$qty', amount='$price', remark='$remark_val',table_type='".$table_type."',section_type='$section_type',created_on='$date', invoice_no='$invoice_no',invoice_seq='$invoice_seq',varient_type='$v_str',product_code='$p_code'";
+			$test_method = mysqli_query($conn, $sqlFinalIns);
 	    	if($test_method)
 	    	{   
 				$order_id = mysqli_insert_id($conn);
 				$vs=0;
-		  $v_order=1;
-		  $parray=explode(",",$pro_id);
-			 $qarray=explode(",",$qty);
-	  $v_order=1;
-	  $ps=0;
-	   // print_R($stock_inventory);
-	   // die;
-		if($stock_inventory=="on")
-		{
-			// update stock value 
-			foreach($parray as $s_id)
-			{
-				  $qty_s=$qarray[$ps];
-				
-				$sdetail= mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM products WHERE id='".$s_id."'"));
-				$parent_id=$sdetail['parent_id'];
-				$stock_value=$sdetail['stock_value'];
-				
-				if($parent_id)
+				$v_order=1;
+				$parray=explode(",",$pro_id);
+				$qarray=explode(",",$qty);
+				$v_order=1;
+				$ps=0;
+			   // print_R($stock_inventory);
+			   // die;
+				if($stock_inventory=="on")
 				{
-					$sdetail= mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM products WHERE id='".$parent_id."'"));	
-					$single_p_id=$parent_id;
-				}
-				else
-				{
-					$single_p_id=$s_id;
-				}
-				
-				 $maintain_stock=$sdetail['maintain_stock'];
-				
-				if($maintain_stock=="on")
-				{
-					$old_pending_stock=$sdetail['pending_stock'];
-					$p_name=$sdetail['product_name'];
-					$reorder_level=$sdetail['reorder_level'];
-					
-					if($stock_value>1)
+					// update stock value 
+					foreach($parray as $s_id)
 					{
-						$qty_s=$stock_value*$qty_s;
-					}
-					 $new_stock=$old_pending_stock-$qty_s;
-					// echo $new_stock;
-					// die;
-					if($new_stock<=0)
-					{  
+						  $qty_s=$qarray[$ps];
 						
-						$update=mysqli_query($conn, "UPDATE products SET pending_stock='$new_stock',on_stock='0' WHERE id='$single_p_id'");
+						$sdetail= mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM products WHERE id='".$s_id."'"));
+						$parent_id=$sdetail['parent_id'];
+						$stock_value=$sdetail['stock_value'];
+						
+						if($parent_id)
+						{
+							$sdetail= mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM products WHERE id='".$parent_id."'"));	
+							$single_p_id=$parent_id;
+						}
+						else
+						{
+							$single_p_id=$s_id;
+						}
+						
+						 $maintain_stock=$sdetail['maintain_stock'];
+						
+						if($maintain_stock=="on")
+						{
+							$old_pending_stock=$sdetail['pending_stock'];
+							$p_name=$sdetail['product_name'];
+							$reorder_level=$sdetail['reorder_level'];
 							
-						$update=mysqli_query($conn, "UPDATE products SET pending_stock='$new_stock',on_stock='0' WHERE id='$s_id'");
-						$noti=$p_name."is Reached Below Reorder Level,Refill it";
-						mysqli_query($conn, "INSERT INTO `stock_notification` (`product_id`, `product_name`, `current_stock`, `reorder_level`, `notification`,`merchant_id`) VALUES ('$single_p_id', '$p_name', '$new_stock', '$reorder_level','$noti','$merchant_id')");
-					
-					}
-					else
-					{
-						$update=mysqli_query($conn, "UPDATE products SET pending_stock='$new_stock' WHERE id='$single_p_id'");	
-					}  
-					if($update)
-					{
-						$qu="INSERT INTO `inventory_stock` (`product_id`, `stock_count`, `stock_type`, `order_id`, `comment`,`child_id`) VALUES ('$single_p_id','$qty_s', 'out', '$order_id', 'productsell','$s_id')";
-						mysqli_query($conn,$qu);   
+							if($stock_value>1)
+							{
+								$qty_s=$stock_value*$qty_s;
+							}
+							 $new_stock=$old_pending_stock-$qty_s;
+							// echo $new_stock;
+							// die;
+							if($new_stock<=0)
+							{  
+								
+								$update=mysqli_query($conn, "UPDATE products SET pending_stock='$new_stock',on_stock='0' WHERE id='$single_p_id'");
+									
+								$update=mysqli_query($conn, "UPDATE products SET pending_stock='$new_stock',on_stock='0' WHERE id='$s_id'");
+								$noti=$p_name."is Reached Below Reorder Level,Refill it";
+								mysqli_query($conn, "INSERT INTO `stock_notification` (`product_id`, `product_name`, `current_stock`, `reorder_level`, `notification`,`merchant_id`) VALUES ('$single_p_id', '$p_name', '$new_stock', '$reorder_level','$noti','$merchant_id')");
+							
+							}
+							else
+							{
+								$update=mysqli_query($conn, "UPDATE products SET pending_stock='$new_stock' WHERE id='$single_p_id'");	
+							}  
+							if($update)
+							{
+								$qu="INSERT INTO `inventory_stock` (`product_id`, `stock_count`, `stock_type`, `order_id`, `comment`,`child_id`,`invoice_no`) VALUES ('$single_p_id','$qty_s', 'out', '$order_id', 'pos productsell','$s_id','$invoice_no')";
+								mysqli_query($conn,$qu);     
+							}
+						}
+						$ps++;
 					}
 				}
-				$ps++;
-			}
-		}
 		  if($varient_type)
 		  {
-			  
 			$vsql = "SELECT MAX(id) v_id FROM order_varient";
 			$v_count = mysqli_fetch_assoc(mysqli_query($conn, $vsql))['v_id'];
 			if($v_count == NULL) $v_count = 1;
@@ -225,12 +231,18 @@ $user_roles=$merchant_data['user_roles'];
 			}
 		  }
 		  // die;
-		     if($user_roles==5)
-	    		header("Location: ".$site_url."/orderview-staff.php");
-			else 
-			  header("Location: ".$site_url."/orderview.php");	
+		     
 	    	}  
 	       else{
 	       	return false;
 	       }
+		}
+		// echo $user_roles;
+		// die;
+		if($user_roles==5)
+		header("Location: ".$site_url."/orderview-staff.php");
+		else 
+		header("Location: ".$site_url."/orderview.php");	
+		
+	
 ?>

@@ -1,7 +1,7 @@
 <?php
 include("config.php");
-//~ print_r($_POST); 
-//~ print_r($_FILES); 
+// ~ print_r($_POST); 
+// ~ print_r($_FILES); 
 $profile_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$_SESSION['login']."'"));
 // print_R($profile_data);
 // die;
@@ -96,15 +96,11 @@ if(!$_POST['always_active']){
     
         // Verify MYME type of the file
         if(in_array($filetype, $allowed)){
-            // Check whether file exists before uploading it
-            if(file_exists("upload/" . $_FILES["image_pic"]["name"])){
-                echo $_FILES["image_pic"]["name"] . " is already exists.";
-            } else{
-                move_uploaded_file($_FILES["image_pic"]["tmp_name"], "/home/koofamilies/public_html/images/product_images/" . $_FILES["image_pic"]["name"]);
-               // echo "Your file was uploaded successfully.";
-            } 
+			
+               move_uploaded_file($_FILES["image_pic"]["tmp_name"], "images/product_images/" . $_FILES["image_pic"]["name"]);
         } else{
-            echo "Error: There was a problem uploading your file. Please try again."; 
+            echo "Error: There was a problem uploading your file. Please try again.";   
+die;			
         }
     } 
 
@@ -130,7 +126,7 @@ if(!$_POST['always_active']){
             if(file_exists("upload/" . $_FILES["image_code"]["name"])){
                 echo $_FILES["image_code"]["name"] . " is already exists.";
             } else{
-                move_uploaded_file($_FILES["image_code"]["tmp_name"], "/home/koofamilies/public_html/images/product_images/" . $_FILES["image_code"]["name"]);
+                move_uploaded_file($_FILES["image_code"]["tmp_name"], "images/product_images/" . $_FILES["image_code"]["name"]);
                // echo "Your file was uploaded successfully.";
             } 
         } else{

@@ -81,7 +81,7 @@ if(isset($_POST['submit']))
             if(file_exists("upload/" . $_FILES["image_pic"]["name"])){
                 echo $_FILES["image_pic"]["name"] . " is already exists.";
             } else{
-                move_uploaded_file($_FILES["image_pic"]["tmp_name"], "/home/koofamilies/public_html/images/product_images/" . $_FILES["image_pic"]["name"]);
+                move_uploaded_file($_FILES["image_pic"]["tmp_name"], "/images/product_images/" . $_FILES["image_pic"]["name"]);
                // echo "Your file was uploaded successfully.";
             } 
         } else{
@@ -112,7 +112,7 @@ if(isset($_POST['submit']))
             if(file_exists("upload/" . $_FILES["code_pic"]["name"])){
                 echo $_FILES["code_pic"]["name"] . " is already exists.";
             } else{
-                move_uploaded_file($_FILES["code_pic"]["tmp_name"], "/home/koofamilies/public_html/images/product_images/" . $_FILES["code_pic"]["name"]);
+                move_uploaded_file($_FILES["code_pic"]["tmp_name"], "/images/product_images/" . $_FILES["code_pic"]["name"]);
                // echo "Your file was uploaded successfully.";
             } 
         } else{

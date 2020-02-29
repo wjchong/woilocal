@@ -90,34 +90,6 @@ if(isset($profile_data['permission_set']))
 	{
 		$report=1;
 	}
-	 if(in_array(17,$getdetail))
-	{
-		$shift_report=1;
-	}
-	 if(in_array(18,$getdetail))
-	{
-		$cash_system=1;
-	}
-	 if(in_array(19,$getdetail))
-	{
-		$product_order=1;
-	}
-	 if(in_array(20,$getdetail))
-	{
-		$pos_product_order=1;
-	}
-	 if(in_array(21,$getdetail))
-	{
-		$invetory=1;
-	}
-	 if(in_array(22,$getdetail))
-	{
-		$stock_report=1;
-	}
-	 if(in_array(23,$getdetail))
-	{
-		$supplier=1;
-	}
 
 
 }
@@ -169,6 +141,7 @@ if(false){  //@isset($_SESSION['IsVIP']
     
     $mar_id = $_SESSION['merchant_id'] ;
     $merchant_detail = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$mar_id."'"));
+	$special_coin_name=$merchant_detail['special_coin_name'];
 ?>
     <div class="box-left" style="width:100%">
 		<div class="pro-pic"><a href="#"> <img src="<?php echo $merchant_detail['image'] ?>"> </a> </div>
@@ -181,9 +154,8 @@ if(false){  //@isset($_SESSION['IsVIP']
 				<li> <a href="contact.php"><?php echo $language['contact'];?> <span> <img src="new/images/mail-side.png">  </span>  </a></li>
 				<li>  <a href="https://www.koofamilies.com/chat.php" target="_new"><?php echo $language["my_community"];?> <span> <img src="new/images/people.png">  </span> </a> </li> 
 				<li> 
-				<?php  $setup_shop=$balance['setup_shop'];
-	$user_roles=$balance['user_roles'];
-	  if(($setup_shop=="y") && ($user_roles=="2")){ ?>   
+				<?php   $setup_shop=$balance['setup_shop'];
+	   if(($setup_shop=="y") && ($user_roles=='2')){ ?>   
 	
 	<a class="Logoutpop"><?php echo $language['log_out'];?><span> <img src="new/images/signout.png">  </span>  </a>
 	<?php } else { ?>
@@ -203,6 +175,7 @@ if(false){  //@isset($_SESSION['IsVIP']
 			if( $profile_data['user_roles'] !=  '5' ||($profile_data['user_roles'] ==  '5' && $dashboardwe==1)) { ?>
 		
 		<a href="dashboard.php"><span class="hide-menu"><?php echo $language["dashboard"] ?></span></a>
+		
 		
 		<?php } ?>
 		        <?php 
@@ -224,16 +197,20 @@ if(false){  //@isset($_SESSION['IsVIP']
 			</ul>
         </li>-->
         <?php } ?>
+		<li><a href="https://play.google.com/store/apps/details?id=com.koobigfamilies.app" target="_blank"><span class="hide-menu">
+		<?php echo "Download App"; ?></span></a></li>  
 			<?php 
 			
 			if(isset($profile_data['user_roles']) && $profile_data['user_roles'] ==  '2') { ?>
 			<li class="menu-item-has-children">
 			<a href="merchant_product.php"><span class="hide-menu"><?php echo $language['merchant'];?></span></a>
 			<ul class="list-unstyled sub-menu collapse" aria-expanded="true">
-				<li><a href="orderview.php">Order list</a></li> 
-			<!--li><a href="set_workinghours.php">Timing/Working</a></li> 
-			<li><a href="offers.php">Offers</a></li!--> 
-		
+			<li><a href="orderview.php">Order list</a></li> 
+			<li><a href="orderviewpast.php">Past Order list</a></li>   
+			<li><a href="memberlist.php">Member list</a></li> 
+			<li><a href="set_workinghours.php">Timing/Working</a></li> 
+			<li><a href="offers.php">Offers</a></li> 
+			
 			<li><a href="cash.php">Cash System</a></li> 
 			<li><a href="report.php">Report</a></li> 
 				<li><a href="shiftreport.php">Shift Report</a></li> 
@@ -261,7 +238,8 @@ if(false){  //@isset($_SESSION['IsVIP']
 				 
 				<li><a href="view_product.php">View Product</a></li>
 				<li><a href="product_order.php">Product Order</a></li>
-				<li><a href="pos_product_order.php">Pos Product Order</a></li>  
+				<li><a href="addlocalcoin.php">Add Local Point</a></li>
+				
 				
 				  <?php 
         if(isset($profile_data['user_roles']) && $profile_data['user_roles'] ==  '2') { 
@@ -285,10 +263,9 @@ if(false){  //@isset($_SESSION['IsVIP']
 <!--
 				 <li><a href="rating.php"><span class="hide-menu">Rating</span></a></li>
 --><li><a href="staff.php"><span class="hide-menu"><?php echo $language["staff"];?></span></a></li>
-<li><a href="staff-attendance.php"><span class="hide-menu">Staff Time Sheet</span></a></li>
 			</ul>
         </li>
-		<?php if($stock_inventory=="on"){ ?>
+        <?php if($stock_inventory=="on"){ ?>
         	<li class="menu-item-has-children">
 				<a href="#"><span class="hide-menu"><?php echo "STOCK SYSTEM";?></span></a>
 			    <ul class="list-unstyled sub-menu collapse" aria-expanded="true">
@@ -299,7 +276,7 @@ if(false){  //@isset($_SESSION['IsVIP']
 				</ul>
 			</li>
 		<?php } ?>
-         
+         <li><a href="subscription.php"><span class="hide-menu"><?php echo $language["subscription_plan"];?></span></a></li>
 
         <?php } ?>
         
@@ -312,16 +289,12 @@ if(false){  //@isset($_SESSION['IsVIP']
 		 			if($report==1)
 					{
 		?>
-					
-						<li><a href="report.php">Report</a></li> 
-					
+						<li><a href="cash.php">Cash System</a></li> 
+			<li><a href="report.php">Report</a></li> 
+				<li><a href="shiftreport.php">Shift Report</a></li> 
 					<?php 
 					}
-					if($shift_report==1)
-					{
-					?>
-						<li><a href="shiftreport.php">Shift Report</a></li>
-					<?php } 
+					
 					if($addproductper==1)
 					{
 					?>
@@ -342,32 +315,6 @@ if(false){  //@isset($_SESSION['IsVIP']
 					{?>
 						<li><a href="add_mater_category.php">Add Master</a></li>
 					<?php }
-					if($cash_system)
-					{
-						echo "<li><a href='cash.php'>Cash System</a></li>";
-					}
-					
-					if($product_order)
-					{
-						echo "<li><a href='product_order.php'>Product Order</a></li>";
-					}
-					if($pos_product_order)
-					{
-						echo "<li><a href='pos_product_order.php'>Pos Product Order</a></li>";
-					}
-					if($invetory)
-					{
-						echo "<li><a href='stock.php'>Inventory</a></li>";
-					}
-					if($stock_report)
-					{
-						echo "<li><a href='stockreport.php'>Stock Report</a></li>";
-					}
-					if($supplier)
-					{
-						echo "<li><a href='supplier.php'>Supplier</a></li>";
-					}
-					
 					if($viewcategoryper)
 					{ ?>
 						<li><a href="view_category.php">View Category</a></li>
@@ -386,12 +333,16 @@ if(false){  //@isset($_SESSION['IsVIP']
 		 
 		 
 		 }
+		 if($profile_data['user_roles']==''){ ?>
+		  <li><a href="merchant_find.php"><span class="hide-menu"><?php echo $language["find_merchant"];?></span></a></li>
+		
+		<?php }
 		 if($profile_data['user_roles'] !=  '5' || $comminutyper==1) { ?>
 		
 		
         <li><a href="https://www.koofamilies.com/chat.php" target="_new"><span class="hide-menu"><?php echo $language["my_community"];?></span></a></li>
 		
-		<?php } ?>
+		<?php }  ?>
         
        
          
@@ -407,12 +358,15 @@ if(false){  //@isset($_SESSION['IsVIP']
 			<ul class="list-unstyled sub-menu collapse" aria-expanded="true">
 				<li><a href="merchant_find.php"><?php echo $language["find_merchant"];?></a></li>
 				<?php if( isset($profile_data['user_roles']) && $profile_data['user_roles'] !=  '') { ?>
+				<li><a href="favorite.php"><?php echo "My Favorite Merchant";?></a></li>
 				<li><a href="orderlist.php"><?php echo $language['list_order_payment'];?></a></li>
+				
+				<li><a href="rebate.php"><?php echo "Rebate";?></a></li>
 				<?php } else { ?>
 				<li><a href="order_guest.php"><?php echo $language['list_order_payment'];?></a></li> <?php }?>
 			</ul>
         </li>
-       
+        
        
        
         <?php }  if( isset($profile_data['user_roles']) && $profile_data['user_roles'] !=  '' && ($profile_data['user_roles'] !=  '5' || ($profile_data['user_roles'] ==  '5' && $referlistper==1)) ) {?> 
@@ -424,6 +378,7 @@ if(false){  //@isset($_SESSION['IsVIP']
 			</ul>
         </li>-->
         <li><a href="referral_list.php"><span class="hide-menu"><?php echo $language['referral_list'];?></span></a> </li>
+		 
         <?php  }
          if(isset($profile_data['user_roles']) && $profile_data['user_roles'] !=  '' && ($profile_data['user_roles'] !=  '5' || ($profile_data['user_roles'] ==  '5' && $ktypeper==1))) { ?>
 		    <li><a href="kType.php"><span class="hide-menu">K Type</span></a></li>
@@ -461,13 +416,12 @@ if(false){  //@isset($_SESSION['IsVIP']
 		<?php } ?>
 		<li>
 		<?php   $setup_shop=$balance['setup_shop'];
-	$user_roles=$balance['user_roles'];
-	  if(($setup_shop=="y") && ($user_roles=="2")){ ?>   
+	 if(($setup_shop=="y") && ($user_roles=='2')){ ?>      
 	
 	<a class="Logoutpop"><span class="hide-menu"><?php echo $language['log_out'];?></span></a>	
 	<?php } else { ?>
 	  	
-			<a href="logout.php"><span class="hide-menu"><?php echo $language['log_out'];?></span></a>		
+			<a class="logout" href="#"><span class="hide-menu"><?php echo $language['log_out'];?></span></a>		
 	<?php } ?>
 		
 		</li>

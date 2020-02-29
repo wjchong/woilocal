@@ -17,6 +17,162 @@ if(isset($_POST['update_ingredients'])){
     }
     die(true);
 }
+if(isset($_POST['method']) && ($_POST['method'] == "directlogin")){
+   extract($_POST);
+  $user_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE user_roles='$user_roles' and id='".$login_cache_id."'"));
+	if($user_data)
+	{
+      $user_id=$user_data['id'];
+	  $_SESSION['login'] = $user_id;
+   				$_SESSION['user_id'] = $user_id;
+   				$_SESSION['setup_shop'] = $user_data['setup_shop'];
+   				$_SESSION['referral_id'] = $user_data['referral_id'];
+   				$_SESSION['name'] = $user_data['name'];
+				$_SESSION['login_user_role'] = $user_data['user_role'];
+   				$_SESSION['mobile'] = $user_data['mobile_number'];
+       $res = array('msg'=>"User exit",'status'=>true,'user_id'=>$user_id,'user_roles'=>$user_roles);
+	}
+    else
+    {
+		$res = array('msg'=>"Fresh Entry",'status'=>false);
+	}
+	
+    echo json_encode($res);
+	die;
+}
+if(isset($_POST['method']) && ($_POST['method'] == "bulkprocess")){
+	$all_invoice=$_POST['all_invoice'];
+	$total_amount = $_POST['total_amount'];
+	$select_wallet = $_POST['select_wallet'];
+	$wallet_paid_amount = $_POST['wallet_paid_amount'];
+	$discount_amount=$_POST['discount_amount'];
+	$paid_amount_pos=$_POST['paid_amount_pos'];
+	$change_pos=$_POST['change_pos'];
+	if($select_wallet!='-1')
+		$pay_mode=$select_wallet;
+		else
+		$pay_mode="cash";
+	if($discount_amount)
+	$discount_amount=number_format($discount_amount,2);
+	// $query = "INSERT INTO statement_data(username,table_num,invoice_num,qty_num,amount,section_type,total_amount,wallet_paid_amount,discount_amount,paid_amount_pos,change_pos,wallet_type)
+	// values ('$_user','$_tablety','$_invo','$_qtyno','$_total','$_section','$total_amount','$wallet_paid_amount','$discount_amount','$paid_amount_pos','$change_pos','$wallet_type')";
+    // $result = mysqli_query($conn, $query); 
+	 $sql = "update order_list set wallet='$pay_mode' where id in($all_invoice)";
+	$rel = mysqli_query($conn, $sql);
+
+}
+if(isset($_POST['method']) && ($_POST['method'] == "productfind")){
+	$p_code=$_POST['p_code'];
+	// $login=$_SESSION['login'];
+	$profile_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$_SESSION['login']."'"));
+	// print_R($profile_data);
+	// die;
+	if($profile_data['user_roles']==5)
+	{
+		$loginidset=$profile_data['parentid'];
+	}
+	else
+	{
+
+		$loginidset=$_SESSION['login'];
+
+	}
+	$p_detail = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM products WHERE product_type='".$p_code."' and user_id='".$loginidset."'"));
+	if($p_detail)
+	{
+		$p_detail=array('status'=>true,'msg'=>'Data found','data'=>$p_detail);
+	}
+	else
+	{
+		$p_detail=array('status'=>false,'msg'=>'Wrong Product Code');
+	}
+	echo json_encode($p_detail);
+	die;
+}
+if(isset($_POST['method']) && ($_POST['method'] == "topupmerchant")){
+	$topup_amount=$_POST['topup_amount'];
+	$user_id=$_POST['user_id'];
+	if($topup_amount && $user_id)
+	{
+		$merchant_detail = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$user_id."'"));
+		if($merchant_detail)
+		{
+			$old_bal=$merchant_detail['balance_myr'];
+			if($old_bal=='')
+				$old_bal=0;
+			$new_bal=$old_bal+$topup_amount;
+			$creaed_on=strtotime(date('d-m-y h:i'));
+			$update=mysqli_query($conn, "UPDATE users SET balance_myr='$new_bal' WHERE id='$user_id'");
+			if($update)
+			{
+				$array_detail=array('status'=>true,'msg'=>'Topup Done','amount'=>$new_bal);
+				mysqli_query($conn,"INSERT INTO tranfer (`sender_id`, `amount`, `receiver_id`, `wallet`, `created_on`, `status`, `details`,`invoice_no`,`type_method`) VALUES ('3136', '$topup_amount', '$user_id', 'CF', '$creaed_on', '1', 'self topup','','topup')");
+				mysqli_query($conn,"INSERT INTO `wallet_history` (`sender_id`, `total_amount`,`order_ids`) VALUES ('3136','$topup_amount','')");
+				$noti_string = 'Self  Topup '.$topup_amount." LIFE COIN";
+				$noti = 'INSERT into notifications (user_id, notification , type, created_on, readStatus) VALUES ("'.$user_id.'", "'.$noti_string.'", "receive", "'.$created_on.'", "0")';
+				$notification = mysqli_query($conn, $noti);
+			}   
+			else
+			{
+				$array_detail=array('status'=>false,'msg'=>'Topup Failes');	
+			}
+		}
+		else
+		{
+			$array_detail=array('status'=>false,'msg'=>'Merchant id not found');
+		}
+		
+	}
+	else
+	{
+		$array_detail=array('status'=>false,'msg'=>'Required Parameter missing');
+	}
+	echo json_encode($array_detail);
+	die;
+}
+if(isset($_POST['method']) && ($_POST['method'] == "paypalcash")){
+	$order_id=$_SESSION['order_id'];
+	if($_SESSION['login'])
+		$user_id=$_SESSION['login'];
+	else
+		$user_id=$_SESSION['tmp_login'];
+	echo "SELECT * FROM order_list WHERE user_id='".$user_id."' and id='$order_id'";
+	die;
+	if($order_id)
+	{
+		$order_q = mysqli_query($conn, "SELECT * FROM order_list WHERE user_id='".$user_id."' and id='$order_id'");
+		$total_rows=mysqli_num_rows($order_q);
+		if($total_rows>0)
+		{
+		  $odata=mysqli_fetch_assoc($order_q);
+		  $o_status=$odata['status'];
+		  if($o_status==3)
+		  {
+			mysqli_query($conn, "update order_list set wallet='cash',status='2' where id='$order_id'");  
+				$array_detail=array('status'=>true,'msg'=>"Order Completed");
+		  }
+		  else
+		  {
+			$o_status=false;
+			$msg="Something Went Wrong ,Contact to support with Tras id:".$odata['id'].$odata['invoice_no']; 
+			$array_detail=array('status'=>false,'msg'=>$msg,'type'=>'wrong');
+		  }  
+		}
+		else
+		{
+			$o_status=false;
+			// $msg="Order Not Completed, Try Again or try different method";
+			$array_detail=array('status'=>false,'msg'=>'Order Not Completed, Try Again or try different method','type'=>'wrong');
+		}
+	}
+	else
+	{
+		
+		$array_detail=array('status'=>false,'msg'=>'Failed Try again','type'=>'wrong');
+	}
+	echo json_encode($array_detail);
+	 die;
+}
 if(isset($_POST['method']) && ($_POST['method'] == "deductfund")){
 	$mobile_num=$_POST['mobile_num'];
 	if(strpos($mobile_num, "60") === 0) 
@@ -55,6 +211,7 @@ if(isset($_POST['method']) && ($_POST['method'] == "deductfund")){
 			mysqli_query($conn, "UPDATE order_list SET status='1',wallet='ewallet',order_process_by='$session_user_id' WHERE id in($selected_invoice_id)");
 			mysqli_query($conn,"INSERT INTO tranfer (`sender_id`, `amount`, `receiver_id`, `wallet`, `created_on`, `status`, `details`,`invoice_no`,`type_method`) VALUES ('$sender_id', '$paid_amount', '$merchant_id', 'MYR', '$creaed_on', '1', 'ewallet used','$selected_invoice_id','ewallet')");
 			mysqli_query($conn,"INSERT INTO `wallet_history` (`sender_id`, `total_amount`,`order_ids`) VALUES ('$sender_id','$new_bal','$selected_invoice_id')");
+			
 			$new_bal=number_format($new_bal,2);
 			if($update)
 				 $array_detail=array('status'=>true,'msg'=>'Order Completed','pending_bal'=>$new_bal);   
@@ -295,6 +452,7 @@ if(isset($_POST['method']) && ($_POST['method'] == "getOrderDetail")){
         $change_pos = $row['change_pos'];
         $order_place = $row['order_place'];
         $varient_type = $row['varient_type'];
+        $order_extra_charge = $row['order_extra_charge'];
         $product_ids = explode(",",$row['product_id']);
         $product_qty = explode(",", $row['quantity']);
         $product_amt = explode(",", $row['amount']);
@@ -330,7 +488,7 @@ if(isset($_POST['method']) && ($_POST['method'] == "getOrderDetail")){
 			$register=$ref_result['register'];
 		}
 		$location=$ref_result['merchant_url'];
-        $item = array('order_place'=>$order_place,'user_location'=>$user_location,'wal_label'=>$wal_label,'wallet_paid_amount'=>$wallet_paid_amount,'change_pos'=>$change_pos,'paid_amount_pos'=>$paid_amount_pos,'discount_amount'=>$discount_amount,'user_mobile'=>$user_mobile,'varient_type'=>$varient_type,'product_ids'=>$product_ids,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type,'location' => $location, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
+        $item = array('order_extra_charge'=>$order_extra_charge,'order_place'=>$order_place,'user_location'=>$user_location,'wal_label'=>$wal_label,'wallet_paid_amount'=>$wallet_paid_amount,'change_pos'=>$change_pos,'paid_amount_pos'=>$paid_amount_pos,'discount_amount'=>$discount_amount,'user_mobile'=>$user_mobile,'varient_type'=>$varient_type,'product_ids'=>$product_ids,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type,'location' => $location, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
         array_push($array_detail, $item);     
     }  
     echo json_encode($array_detail);
@@ -347,6 +505,7 @@ error_reporting(E_ALL);
     while ($row=mysqli_fetch_assoc($data)){
         $user_id = $row['user_id'];
         $merchant_id = $row['merchant_id'];
+        $order_extra_charge = $row['order_extra_charge'];
         $order_place = $row['order_place'];
         $wallet_paid_amount = $row['wallet_paid_amount'];
 		$varient_type = $row['varient_type'];
@@ -401,7 +560,7 @@ error_reporting(E_ALL);
 		// print_R($incsst);
 		// print_R($final_amount);
 		// die;    
-        $item = array('order_place'=>$order_place,'wallet_paid_amount'=>$wallet_paid_amount,'final_amount'=>$final_amount,'varient_type'=>$varient_type,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type, 'location' => $location, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
+        $item = array('order_extra_charge'=>$order_extra_charge,'order_place'=>$order_place,'wallet_paid_amount'=>$wallet_paid_amount,'final_amount'=>$final_amount,'varient_type'=>$varient_type,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type, 'location' => $location, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
         array_push($array_detail, $item);
     }
     echo json_encode($array_detail);
@@ -446,7 +605,7 @@ if( isset( $_POST['method']) && ( $_POST['method'] == "sendotp" )  ) {
     $cm=$_POST['usermobile'];
     $_SESSION['step'] = 'otp';
     // gw_send_sms("APIHKXVL33N5E", "APIHKXVL33N5EHKXVL", "9787136232", "$cm", "One time password for Koo Families is $otp");
-    gw_send_sms("APIHKXVL33N5E", "APIHKXVL33N5EHKXVL", "9787136232", "$cm", "$otp is your otp code for Koo Families");  
+    // gw_send_sms("APIHKXVL33N5E", "APIHKXVL33N5EHKXVL", "9787136232", "$cm", "$otp is your otp code for Koo Families");  
 	 $item = array('otp'=>$otp,'status'=>true);
       	 mysqli_query($conn,"UPDATE `users` SET `user_otp` = '$otp' WHERE `users`.`mobile_number` ='$cm'");
 		echo json_encode($item);
@@ -565,12 +724,27 @@ if( isset( $_POST['method']) && ( $_POST['method'] == "neworder" )  ) {
     $date = $_POST['date'];
     $time = $_POST['time'];
 	
-    $ref_result = mysqli_fetch_assoc(mysqli_query($conn, "SELECT id, print_ip_address,printer_style,printer_profile,usb_name FROM users WHERE id='".$_SESSION['login']."'"));
+    $ref_result = mysqli_fetch_assoc(mysqli_query($conn, "SELECT id, print_ip_address,printer_style,printer_profile,usb_name,customer_printer_profile,customer_print_ip_address,customer_usb_name FROM users WHERE id='".$_SESSION['login']."'"));
 	
 	// print_R($ref_result);
 	// die;
+	if($ref_result['customer_usb_name'] || $ref_result['customer_print_ip_address'])
+	{
+		if($ref_result['customer_printer_profile']=="ip")
+		{
+			$ip_address= $ref_result['print_ip_address'];
+		}
+		else if($ref_result['customer_printer_profile']=="usb")
+		{
+			$merchat_detail['printer_profile']="usb";
+			$merchat_detail['usb_name']=$ref_result['customer_usb_name'];
+		}
+	}
+	else
+	{
+		$ip_address = $ref_result['print_ip_address'];
+	}
 	
-	$ip_address = $ref_result['print_ip_address'];
 	$print_report=OrderCustomprint($ip_address,$order,$date,$time,$conn,$ref_result);
 	echo json_encode($print_report);
 	die;
@@ -579,64 +753,72 @@ if( isset( $_POST['method']) && ( $_POST['method'] == "getUnPrintedOrder2" )  ) 
     $id = $_POST['id'];
 
     $ref_result = mysqli_fetch_assoc(mysqli_query($conn, "SELECT name, id, order_print_setting,order_print_live_setting, sst, gst, register FROM users WHERE id='".$id."'"));
-    if( $ref_result['order_print_setting'] === 'on' ) {
+    $date=date('Y-m-d');
+	if( $ref_result['order_print_setting'] === 'on' ) {
         $sst = $ref_result['sst'];
         $gst = $ref_result['gst'];  
+		
         $register = $ref_result['register'];
         $merchant_name = $ref_result['name'];
 		  $varient_type = $row['varient_type'];
 		  if($ref_result['order_print_live_setting']=='on')
 		  {
-			$data = mysqli_query($conn, "SELECT * FROM order_list WHERE status=0 AND merchant_id='$id' AND auto_print!='1' and  created_timestamp >= NOW() - INTERVAL 10 MINUTE ORDER BY ID DESC LIMIT 10");
+			$data = mysqli_query($conn, "SELECT * FROM order_list WHERE  merchant_id='$id' AND auto_print!='1' and  date(created_on)='$date' and created_timestamp >= NOW() - INTERVAL 10 MINUTE ORDER BY ID DESC LIMIT 10");
         
 		  }
 		  else
 		  {
-			$data = mysqli_query($conn, "SELECT * FROM order_list WHERE status=0 AND merchant_id='$id' and  order_place='local' and auto_print!='1' and  created_timestamp >= NOW() - INTERVAL 10 MINUTE ORDER BY ID DESC LIMIT 10");
+			$data = mysqli_query($conn, "SELECT * FROM order_list WHERE  merchant_id='$id' and  date(created_on)='$date' and order_place in('local','poslocal') and auto_print!='1' and  created_timestamp >= NOW() - INTERVAL 10 MINUTE ORDER BY ID DESC LIMIT 10");
           
 		  }
 		  
 		  $array_detail = array();
         while ( $row=mysqli_fetch_assoc($data) ) {
-            $user_id = $row['user_id'];
-            $order_id = $row['id'];
-            $merchant_id = $row['merchant_id'];
-			$wallet = isset($row['wallet']) ? $row['wallet'] : '';
-			$discount_amount = $row['discount_amount'];
-			$paid_amount_pos = $row['paid_amount_pos'];
-			// $wallet = $row['wallet'];
-			if($wallet=="myr_bal")
-			$wal_label="MYR WALLET";
-			else if($wallet=="inr_bal")
-			$wal_label="KOO COIN";
-			else if($wallet=="usd_bal")
-			$wal_label="CF WALLET";
-			else $wal_label="CASH";
-			$wallet_paid_amount = $row['wallet_paid_amount'];
-			$change_pos = $row['change_pos'];
-            $product_ids = explode(",",$row['product_id']);
-            $product_qty = explode(",", $row['quantity']);
-            $product_amt = explode(",", $row['amount']);
-            $product_code = explode(",", $row['product_code']);
-            $remark_ids = explode("|",$row['remark']);
-            $location = isset($row['location']) ? $row['location'] : '';
-            $section_type = isset($row['section_type']) ? $row['section_type'] : '';
-            $table_type = isset($row['table_type']) ? $row['table_type'] : '';
-            $user_id = isset($row['user_id']) ? $row['user_id'] : '';
-            $array_product_names = [];
-            for($i = 0;  $i < count($product_ids); $i++){
-                if(is_numeric($product_ids[$i])){
-                    $product_name = mysqli_fetch_assoc(mysqli_query($conn, "SELECT product_name FROM products WHERE id ='".$product_ids[$i]."'"))['product_name'];
-                } else {
-                    $product_name = $product_ids[$i];
-                }
-                $array_product_names[$i] = $product_name;
-            }
-            // $order_name = mysqli_fetch_assoc(mysqli_query($conn, "SELECT name FROM users where id='$user_id'"))['name'];
-			$order_name=$row['user_name'];
-			$user_mobile=$row['user_mobile'];
-            $item = array('wal_label'=>$wal_label,'wallet_paid_amount'=>$wallet_paid_amount,'change_pos'=>$change_pos,'paid_amount_pos'=>$paid_amount_pos,'discount_amount'=>$discount_amount,'user_mobile'=>$user_mobile,'varient_type'=>$varient_type,'product_ids'=>$product_ids,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type,'location' => $location, "wallet" => $wallet, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
-            array_push($array_detail, $item);
+			if($row['order_place']=="poslocal" && $row['status']=='1')
+			{
+			}
+			else
+			{
+				$user_id = $row['user_id'];
+				$order_id = $row['id'];
+				$merchant_id = $row['merchant_id'];
+				$wallet = isset($row['wallet']) ? $row['wallet'] : '';
+				$discount_amount = $row['discount_amount'];
+				$paid_amount_pos = $row['paid_amount_pos'];
+				// $wallet = $row['wallet'];
+				if($wallet=="myr_bal")
+				$wal_label="MYR WALLET";
+				else if($wallet=="inr_bal")
+				$wal_label="KOO COIN";
+				else if($wallet=="usd_bal")
+				$wal_label="CF WALLET";
+				else $wal_label="CASH";
+				$wallet_paid_amount = $row['wallet_paid_amount'];
+				$change_pos = $row['change_pos'];
+				$product_ids = explode(",",$row['product_id']);
+				$product_qty = explode(",", $row['quantity']);
+				$product_amt = explode(",", $row['amount']);
+				$product_code = explode(",", $row['product_code']);
+				$remark_ids = explode("|",$row['remark']);
+				$location = isset($row['location']) ? $row['location'] : '';
+				$section_type = isset($row['section_type']) ? $row['section_type'] : '';
+				$table_type = isset($row['table_type']) ? $row['table_type'] : '';
+				$user_id = isset($row['user_id']) ? $row['user_id'] : '';
+				$array_product_names = [];
+				for($i = 0;  $i < count($product_ids); $i++){
+					if(is_numeric($product_ids[$i])){
+						$product_name = mysqli_fetch_assoc(mysqli_query($conn, "SELECT product_name FROM products WHERE id ='".$product_ids[$i]."'"))['product_name'];
+					} else {
+						$product_name = $product_ids[$i];
+					}
+					$array_product_names[$i] = $product_name;
+				}
+				// $order_name = mysqli_fetch_assoc(mysqli_query($conn, "SELECT name FROM users where id='$user_id'"))['name'];
+				$order_name=$row['user_name'];
+				$user_mobile=$row['user_mobile'];
+				$item = array('wal_label'=>$wal_label,'wallet_paid_amount'=>$wallet_paid_amount,'change_pos'=>$change_pos,'paid_amount_pos'=>$paid_amount_pos,'discount_amount'=>$discount_amount,'user_mobile'=>$user_mobile,'varient_type'=>$varient_type,'product_ids'=>$product_ids,'register' => $register, 'sst' => $sst, 'gst' => $gst, 'user_id' => $user_id, 'product_code' => $product_code, 'table_type' => $table_type,'section_type'=>$section_type,'location' => $location, "wallet" => $wallet, 'remark' => $remark_ids, 'invoice_no' => $row['invoice_no'] , 'status' => $row['status'] , 'id' => $row['id'] , 'username' =>$order_name, 'merchantname' => $merchant_name, 'product_name' => $array_product_names, 'product_qty' => $product_qty, 'product_amt' => $product_amt);
+				array_push($array_detail, $item);
+			}
 			
         }
         echo json_encode($array_detail);
@@ -850,10 +1032,100 @@ if( isset( $_POST['method']) && ( $_POST['method'] == "pintOrder" ) ) {
 		// $ref_result=[];
 		$print_report=OrderCustomprint($ip_address,$order,$date,$time,$conn,$ref_result);    
 	}
-	else
+	else if($printer_style=="normal")
 	{
 		$ip_address = $ref_result['print_ip_address'];
 		$print_report=OrderCustomprint($ip_address,$order,$date,$time,$conn,$ref_result);
+	} else if($printer_style=="combosplit")
+	{
+		$product_ids=$order['product_ids'];
+		$prdouct_str=implode(",",$product_ids);
+		$prdouct_str=$order['product_id'];
+		$p_array=explode(',',$prdouct_str);
+		$product_result=[];
+		foreach($product_ids as $p)
+		{
+			// echo "SELECT products.id,products.print_ip_address,products.product_name,products.product_type,products.remark,products.printer_ip_2,products.printer_profile,products.usb_name FROM products WHERE products.id in($p)";
+			$product_result[] = mysqli_fetch_array(mysqli_query($conn, "SELECT products.id,products.print_ip_address,products.product_name,products.product_type,products.remark,products.printer_ip_2,products.printer_profile,products.usb_name FROM products WHERE products.id in($p)"));
+		}
+		$i=0;
+		$remarkarray=$order['remark'];
+		$product_qty=$order['product_qty'];
+		$amount_list=$order['product_amt'];
+		// print_R($product_result);
+		// die;
+		foreach ($product_result as $key => $item) {
+				 
+				$s_t=$item['printer_profile'];
+				$s_name=$item['usb_name'];
+				$printer_pro=$item['printer_profile'];
+				// $printer_pro="usb";
+				// print_R($item);
+				// die;
+				if($printer_pro=="usb")
+				{
+					if($item['usb_name'])
+					{
+						$usb_name=$item['usb_name'];
+						$d['product_id']=$item[0];
+						$d['product_qty']=$product_qty[$i];
+						$d['product_amt']=$amount_list[$i];
+						$d['product_name']=$item[2];
+						$d['remark']=$remarkarray[$i];
+						$d['product_type']=$item[3];
+						$d['p_remark']=$item[4];
+						$d['printer_profile']=$item['printer_profile'];
+						$d['usb_name']=$item['usb_name'];
+						$arr[$usb_name."_".$item['printer_profile']."_".$item['usb_name']][$key]=$d;
+						// $arr[$usb_name][$key]=$d;
+					}
+				}
+				else if($printer_pro=="ip")
+				{
+					if($item[1])
+					{
+						$d['product_id']=$item[0];
+						$d['product_qty']=$product_qty[$i];
+						$d['product_amt']=$amount_list[$i];
+						$d['product_name']=$item[2];
+						$d['remark']=$remarkarray[$i];
+						$d['product_type']=$item[3];
+						$d['p_remark']=$item[4];
+						$d['printer_profile']=$item['printer_profile'];
+						$d['usb_name']=$item['usb_name'];
+						$arr1[$item[1]."_".$item['printer_profile']."_".$item['usb_name']][$key]=$d;
+					}
+					
+				}
+				$i++;
+			}
+			foreach($arr as $kp=>$p)
+			{
+				if($kp)
+				{  
+					$k_arr=explode('_',$kp);
+					$s_t=$k_arr[1];
+					$s_name=$k_arr[0];
+					// ($printer_profile,$sorder,$date,$time,$order,$conn,$merchat_detail,$s_name)
+					$print_report=OrderCustomproduct($s_t,$p,$date,$time,$order,$conn,$ref_result,$s_name);
+					$print_report=singleorderprint($s_t,$p,$date,$time,$order,$conn,$s_t,$s_name);
+				}
+			}   
+			// print_R($arr1);
+			// die;
+			foreach($arr1 as $kp=>$p)
+			{
+				
+				if($kp)
+				{
+					$k_arr=explode('_',$kp);
+					$s_t=$k_arr[1];
+					$s_name=$k_arr[0];
+					$print_report=OrderCustomproduct($s_t,$p,$date,$time,$order,$conn,$ref_result,$s_name);
+					 $print_report=singleorderprint($s_t,$p,$date,$time,$order,$conn,$s_t,$s_name);
+					// $print_report=singleorderprint($kp1,$p1,$date,$time,$order,$conn,$s_t,$s_name);
+				}
+			}
 	}
 	echo json_encode($print_report);
 	die;
@@ -985,17 +1257,18 @@ function singleorderprint($ip_address,$data,$date,$time,$order,$conn,$s_t,$s_nam
 					$number = $i + 1;
 					$j=0;
 					
-					$printer -> textChinese( ' '.$name."  ".$qty."\n");  
+					$printer -> textChinese( ' '.$name."\n");  
 					// $printer -> textChinese( ' ( '.$p_code.' )          '. $qty ."\n");
+					$printer -> textChinese( '               '. $qty ."\n");
 					 // $printer -> text( '   '.  $p_code."\n");
 					if(strlen($remark)>0)
 						 {
-						 // $printer -> textChinese( '   '.$remark."\n"); 
+						 $printer -> textChinese( '   '.$remark."\n"); 
 						 }
-						if(strlen($product_remark)>0)
-						 {
+						// if(strlen($product_remark)>0)
+						 // {
 						 // $printer -> textChinese( '   '.$product_remark."\n"); 
-						 }
+						 // }
 					
 					$v_data =mysqli_query($conn, "SELECT varient_id FROM order_varient WHERE product_id='$product_id' and invoice_no='$invoce_id' and v_order='$v_order'");
 					while ($srow=mysqli_fetch_assoc($v_data)){
@@ -1118,7 +1391,7 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 				{
 					$printer -> setEmphasis(true);
 					$printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
-					$printer -> textChinese( "Customer : " . $order['username'] . "\n" );
+					$printer -> text( "Customer : " . $order['username'] . "\n" );
 					// $printer -> text("\n");
 					// $printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
 					 // $printer -> selectPrintMode(Printer::MODE_FONT_A);
@@ -1127,6 +1400,13 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 				{
 					$printer -> setEmphasis(false);
 					$printer -> text( 'Phone : ' . $mobile . "\n" );
+					// $printer -> text("\n");
+				}
+				$date=date('d/m/y H:i A');
+				if($date)
+				{
+					$printer -> setEmphasis(false);
+					$printer -> text( 'Date : ' . $date . "\n" );
 					// $printer -> text("\n");
 				}
 				
@@ -1309,6 +1589,14 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 				   // $printer -> text( "              " . "           	   $showincsst" . "   " . "\n");
 					  
 				}
+				$delivery_charges=$order['order_extra_charge'];
+				if($delivery_charges>0)
+				{
+					$total=$total+$delivery_charges;
+					$delivery_charges=number_format($delivery_charges, 2);
+					$printer -> text( "                      " . "Delivery Fee        $delivery_charges" . "   " . "\n");
+				
+				} 
 				$cash_pay=$total-$wallet_paid_amount;
 				
 				
@@ -1346,6 +1634,7 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 					$printer -> text( "           " ."Change:      RM $change_pos" . "   " . "\n");
 				}
 					// $printer -> text("\n");
+				$user_location='';
 				if($order_place=="live" || $order_place=="poslive")
 				{
 					if($user_location)
@@ -1386,6 +1675,344 @@ function OrderCustomprint($ip_address,$order,$date,$time,$conn,$merchat_detail)
 				$printer -> text("\n");
 				// $printer -> text("\n");
 				$printer -> cut( Printer::CUT_FULL, 3 );  
+				$printer -> close();
+				//echo('success');   
+				$order_id=$order['id'];
+				 mysqli_query($conn,"UPDATE `order_list` SET `auto_print` = '1' WHERE `order_list`.`id` ='$order_id'");
+				$res['status']=true;
+				$res['message']="Print Successfully";
+			} finally {
+				$printer -> close();   
+			}
+			// print_R($res);
+			// die;
+		}
+			return $res;
+	}
+	function OrderCustomproduct($printer_profile,$sorder,$date,$time,$order,$conn,$merchat_detail,$s_name)
+	{     
+	        
+		
+	  
+	   	if( $order == null ) {
+			$res['status']=false;
+			$res['message']="Failed to make print Due to Order Blank";
+			
+			//echo( "empty" );
+			} else {
+				
+			  $printer_t=$printer_profile;
+		    
+			try {
+					if($printer_t=="usb")
+					{
+						 $usb_name=$s_name;
+						$connector = new WindowsPrintConnector($usb_name);
+					}
+					else
+					{
+						$connector = new NetworkPrintConnector($s_name, 9100,5);
+					}
+				
+				
+			} catch( Exception $e ) {
+				
+				//echo('print_setting_error');
+				//echo(print_r($e, true));
+				// die();
+				$res['status']=false;
+				$res['message']="Printer is not connected";
+			}
+			  // print_R($res);
+			  // die;
+			// $res['status']=false;
+			// $res['message']="Printer is not connected";
+			//echo(print_r($connector, true));
+			
+			
+			// 3 + 16 + 8 + 5 + 7 + 7
+			$sst_rate = $merchat_detail['sst_rate'];
+			$mobile = $order['user_mobile'];
+			$order_place = $order['order_place'];
+			$wal_label = $order['wal_label'];
+			$wallet_paid_amount = $order['wallet_paid_amount'];
+			$discount_amount = $order['discount_amount'];
+			$paid_amount_pos = $order['paid_amount_pos'];
+			$change_pos = $order['change_pos'];
+			$section_id=$order['section_type'];
+			$section_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT name FROM sections WHERE id='".$order['section_type']."'"));
+			// print_R($section_data);
+			// die;
+			$section_name=$section_data['name'];
+			$invoce_id=$order['invoice_no'];
+			$user_location=$order['user_location'];
+			$order_id=$order['id'];
+			$printer = new Printer($connector);
+			$printer -> getPrintConnector() -> write(PRINTER::ESC . "B" . chr(4) . chr(1));
+			try {
+				
+				// $printer -> text("\n");
+				$printer -> setJustification(Printer::JUSTIFY_CENTER);
+				// $printer -> text("\n");
+				$printer -> setEmphasis(true);
+				$printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
+				$printer -> text( $order['merchantname'] . "\n" );
+				// $printer -> text("\n");
+				if($order['register'])
+				{
+					$printer -> selectPrintMode(Printer::MODE_FONT_A);
+					$printer -> setEmphasis(false);
+					$printer -> text( '( ' . $order['register'] . ' )' . "\n" );
+					// $printer -> text("\n");
+				}
+				if($order['username'])
+				{
+					$printer -> setEmphasis(true);
+					$printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
+					$printer -> text( "Customer : " . $order['username'] . "\n" );
+					// $printer -> text("\n");
+					// $printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
+					 // $printer -> selectPrintMode(Printer::MODE_FONT_A);
+				}
+				// if($mobile)
+				// {
+					// $printer -> setEmphasis(false);
+					// $printer -> text( 'Phone : ' . $mobile . "\n" );
+					
+				// }
+				
+				$printer -> selectPrintMode(Printer::MODE_FONT_A);
+				$printer -> setEmphasis(false);
+				// $printer -> text("\n");
+				$location = $merchat_detail['merchant_url'];
+				$words = explode(" ", $location);
+				$rows_locations = [];
+				$rows_location = '';
+				for( $i = 0 ; $i < sizeof( $words ) ; $i ++ ) {
+					
+					$word = $words[$i];
+					$word .= ' ';
+					if( strlen( $rows_location ) + strlen( $word ) < 30 ) {
+						$rows_location .= $word;
+						if( $i == sizeof( $words ) - 1 ) {
+							array_push( $rows_locations, $rows_location);
+						}
+					} else {
+						array_push( $rows_locations, $rows_location);
+						$rows_location = $word;
+						if( $i == sizeof( $words ) - 1 ) {
+							array_push( $rows_locations, $rows_location);
+						}
+					}
+				}
+				foreach( $rows_locations as $item ) {
+					$printer -> text( ' ' . $item . "\n" );
+					// $printer -> text("\n");
+				}
+				if($order['gst'])
+				{
+				 $printer -> text( 'GST ID : ' . $order['gst'] . "\n" );
+				}
+				// $printer -> text("\n");
+				if($order['sst'])
+				{
+				 $printer -> text( 'SST NO : ' . $order['sst'] . "\n" );
+				}
+				// $printer -> text("\n");
+				// $printer -> text("\n");
+				
+				if($order['invoice_no'])
+				{
+					// $printer -> barcode(($invoce_id % 1000), Printer::BARCODE_CODE39 );  // $order['id'] . '-' . 
+					$printer -> barcode( $order['id'] . '-' . $invoce_id, Printer::BARCODE_CODE39 );  
+				}     
+				// $printer -> text("\n");   
+				$printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
+				// $printer -> text(  $order['id'] . '-' . ($invoce_id % 1000) . "\n" );
+				//$printer -> text(($invoce_id % 1000) . "\n" );
+				$printer -> text(  $order['id'] . '-' . $invoce_id . "\n" );
+				$printer -> selectPrintMode(Printer::MODE_FONT_A);
+				// $printer -> text("\n");
+				$printer -> setJustification(Printer::JUSTIFY_LEFT);
+				$printer -> text("\n");
+				$printer -> setEmphasis(true);
+				$printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
+				$printer -> text("  Table : " . $order['table_type'] . "  "."Section : " .$section_name. "\n");
+				 // $printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
+				// $printer -> text("  Section : " . $order['section_type'] . "\n");   
+				$printer -> selectPrintMode(Printer::MODE_FONT_A);
+				// $printer -> text("\n"); 
+				$printer -> setEmphasis(false);
+				$printer -> text( '  ' . $date . ' ' . $time . "\n");
+				// $printer -> text("\n");
+				$printer -> selectPrintMode(Printer::MODE_FONT_A);
+				$printer -> text( "  No  Name( Code )    Qty  Remark  Price  Amount " . "\n");
+				// $printer -> text("\n");
+				$total = 0;
+				$qty_total = 0;
+				$v_order=1;
+				// print_R($sorder);
+					// die;
+				foreach ($sorder as $singleorder){ 
+				// for( $i = 0 ; $i < sizeof( $sorder ) ; $i ++ ) {
+				    // $singleorder=$sorder[$i];
+					
+					if( $singleorder['product_qty'] && $singleorder['product_amt'] ) {
+						$amount = $singleorder['product_qty'] * $singleorder['product_amt'];
+					} else {
+						$amount = 0;
+					}
+					$qty_total += $singleorder['product_qty'];
+					$total += $amount;
+					$amount=number_format($amount,2);
+					$total=number_format($total,2);
+					$remark = isset($singleorder['remark']) ? $singleorder['remark'] : '';
+					$product_code = isset($singleorder['product_code']) ? $singleorder['product_code'] : '';
+					$product_code  = '(' . $product_code . ')';
+					$name = $singleorder['product_name'];
+					$product_id = $singleorder['product_id'];
+					$qty = $singleorder['product_qty'];
+					$price = $singleorder['product_amt'];  
+					$name .= $product_code;
+					$number = $i + 1;
+					$size_number = 3;
+					$size_name = 12;
+					$size_remark = 7;
+					$size_qty = 4;
+					$size_price = 6;
+					$size_amount = 6;
+					$lines = max(intval( strlen($number) / $size_number) , intval( strlen($name) / $size_name) , intval( strlen($remark) / $size_remark) , intval( strlen($qty) / $size_qty) , intval( strlen($price) / $size_price) , intval( strlen($amount) / $size_amount) );
+					$lines ++;
+					// echo "SELECT varient_id FROM order_varient WHERE merchant_id='".$_SESSION['login']."' and  product_id='$product_id' and invoice_no='$invoce_id' and v_order='$v_order'";
+					$v_data =mysqli_query($conn, "SELECT varient_id FROM order_varient WHERE merchant_id='".$_SESSION['login']."' and  product_id='$product_id' and invoice_no='$invoce_id' and v_order='$v_order'");
+					for( $j = 0 ; $j < $lines ; $j++) {  
+						$number_print = '';
+						if( strlen($number) > ($j) * $size_number ) {
+							$number_print = substr($number, $j * $size_number, min($size_number, strlen($number) - ($j) * $size_number));
+						}
+						$number_print = str_pad($number_print,  $size_number, "   ");
+						$name_print = '';
+						if( strlen($name) > ($j) * $size_name ) {
+							$name_print = substr($name, $j * $size_name, min($size_name, strlen($name) - ($j) * $size_name));
+						}
+						$name_print = str_pad($name_print,  $size_name, "   ");
+						$remark_print = '';
+						if( strlen($remark) > ($j) * $size_remark ) {
+							$remark_print = substr($remark, $j * $size_remark, min($size_remark, strlen($remark) - ($j) * $size_remark));
+						}
+						$remark_print = str_pad($remark_print,  $size_remark, "   ");
+						$qty_print = '';
+						if( strlen($qty) > ($j) * $size_qty ) {
+							$qty_print = substr($qty, $j * $size_qty, min($size_qty, strlen($qty) - ($j) * $size_qty));
+						}
+						$qty_print = str_pad($qty_print,  $size_qty, "   ");
+						$price_print = '';
+						if( strlen($price) > ($j) * $size_price ) {
+							$price_print = substr($price, $j * $size_price, min($size_price, strlen($price) - ($j) * $size_price));
+						}
+						$price_print = str_pad($price_print,  $size_price, "   ");
+						$amount_print = '';
+						if( strlen($amount) > ($j) * $size_amount ) {
+							$amount_print = substr($amount, $j * $size_amount, min($size_amount, strlen($amount) - ($j) * $size_amount));
+						}
+						$amount_print = str_pad($amount_print,  $size_amount, "   ");
+						$printer -> textChinese( '  ' . $number_print . ' ' .  $name_print . '    ' . $qty_print. ' ' . $remark_print . ' ' . $price_print . ' ' . $amount_print . "\n");
+					    
+					
+					}
+						while ($srow=mysqli_fetch_assoc($v_data)){
+						   // print_R($srow);	
+						$v_id=$srow['varient_id'];   
+						$sub_rows = mysqli_query($conn, "SELECT * FROM sub_products WHERE id='$v_id'");
+						while ($srow1=mysqli_fetch_assoc($sub_rows)){  
+							// print_R($srow1); 
+							// die;
+							  $v_name=$srow1['name'];
+							// die;
+							 // die;
+							if($v_name)
+							{
+								$printer -> textChinese( '   '.$v_name."\n"); 
+							}
+							$v_name='';
+						}
+						$v_name='';
+					}
+					// $varray=$order['varient'];
+					
+					// foreach($varray  as $vi)
+					// {
+						
+						// $v_text=$vi['name']."( ".$vi['product_price'].")";
+					    // $printer -> textChinese( '   '.$v_text."\n"); 
+					// }
+					// $printer -> text("\n");
+					$v_order++;
+				}
+				if($sst_rate>0)
+				{
+					$incsst = ($sst_rate / 100) * $total;
+					$incsst=number_format($incsst, 2);
+					$showincsst=ceiling($incsst,0.05);
+					$rounding=$showincsst-$incsst;
+					$rounding=number_format($rounding, 2);
+					$total=number_format($showincsst+$total, 2);
+				
+					$printer -> text( "                      " . "SST (6 %)        $incsst" . "   " . "\n");
+				   
+					$printer -> text( "                      " . "Rounding         $rounding" . "   " . "\n");
+				   // $printer -> text( "              " . "           	   $showincsst" . "   " . "\n");
+					  
+				}
+				$cash_pay=$total-$wallet_paid_amount;
+				$printer->setJustification(Printer::JUSTIFY_RIGHT);
+				$printer -> selectPrintMode(Printer::MODE_FONT_B | Printer::MODE_DOUBLE_HEIGHT | Printer::MODE_DOUBLE_WIDTH);
+				$printer -> text( "------------ -------------" . "\n");
+				$printer -> text( "Qty: " . $qty_total . "      " ."Total:      RM $total" . "   " . "\n");
+				$printer -> selectPrintMode(Printer::MODE_FONT_A);
+				
+					// $printer -> text("\n");
+					$user_location='';
+				if($order_place=="live" || $order_place=="poslive")
+				{
+					if($user_location)
+					{
+						$words = explode(" ", $user_location);
+						$rows_locations = [];
+						$rows_location = '';
+						for( $i = 0 ; $i < sizeof( $words ) ; $i ++ ) {
+							$word = $words[$i];
+							$word .= ' ';
+							if( strlen( $rows_location ) + strlen( $word ) < 30 ) {
+								$rows_location .= $word;
+								if( $i == sizeof( $words ) - 1 ) {
+									array_push( $rows_locations, $rows_location);
+								}
+							} else {
+								array_push( $rows_locations, $rows_location);
+								$rows_location = $word;
+								if( $i == sizeof( $words ) - 1 ) {
+									array_push( $rows_locations, $rows_location);
+								}
+							}
+						}
+							$printer -> selectPrintMode(Printer::MODE_FONT_A);
+							$printer -> setEmphasis(false);
+							if(count($rows_locations)>0)
+							{
+								$printer -> text( ' ' . "Customer Location:" . "\n" );
+								foreach( $rows_locations as $item ) {
+									$printer -> text( ' ' . $item . "\n" );
+									// $printer -> text("\n");
+								}
+							}
+					}
+					
+				}	
+				$printer -> text( "============ =============" . "\n"); 
+				$printer -> text("\n");
+				// $printer -> text("\n");
+				// $printer -> cut( Printer::CUT_FULL, 3 );  
 				$printer -> close();
 				//echo('success');   
 				$order_id=$order['id'];

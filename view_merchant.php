@@ -4,6 +4,14 @@ include_once('php/Section.php');
 // include_once('php/SectionTable.php');
 // Start of Hire's work
 // Load merchant's product with QR
+$p_status='';
+if(!empty($_GET['status'])){
+	$p_status=$_GET['status'];
+}
+if(!empty($_SESSION['o'])){
+	$o_done=$_SESSION['o'];
+	$_SESSION['o']='';
+}
 
 if(!empty($_GET['sid'])){
     $sid = $_GET['sid'];
@@ -15,6 +23,7 @@ if(!empty($_GET['sid'])){
     $_SESSION['latitude'] = $product['latitude'] ; 
     $_SESSION['longitude'] = $product['longitude'] ;
     $_SESSION['IsVIP'] = $product['IsVIP'] ;
+    $_SESSION['mm_id']= $product['id'];
     $_SESSION['mm_id']= $product['id'];
      
 } 
@@ -39,6 +48,7 @@ if($sectionsList) {
 
 $bank_data = isset($_SESSION['login']) ? mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$_SESSION['login']."'")) : '';
 $check_number=$bank_data['mobile_number'];
+
 $check_number=str_replace("60","",$check_number);
 $nature_array = array(
         "Foods and Beverage, such as restaurants, healthy foods, franchise, etc",
@@ -73,6 +83,9 @@ $nature_image = array(
   
 <head>
     <?php include("includes1/head.php"); ?>
+	<script src="js/jquery-3.2.1.min.js"></script>
+	<link rel="stylesheet" href="css/jquery.fancybox.min.css">
+	<script src="js/jquery.fancybox.min.js"></script>
   <style>
     body.noscroll{
       overflow: hidden !important;
@@ -666,12 +679,68 @@ input[name='p_total[]'],input[name='p_price[]']{
   </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAEr0LmMAPOTZ-oxiy9PoDRi3YWdDE_vlI&libraries=places" async defer></script> 
+<style type="text/css">
+#pop_cart
+{
+	font-size:.8em;
+}
+.modal 
+{
+	width:93%;
+}
+ @media only screen and (max-width:400px) {
+	 .navbar-nav > li
+	 {
+	 }
+ }
+@import url( 'https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css' );
+
+.adminDemoVideo {
+  position: relative;
+  display: inline-block;
+}
+ @media only screen and (min-width: 700px) {
+  .adminDemoVideo::before {
+    content: '\f00e';
+    z-index: 5;
+    position: absolute;
+    left: 9%;
+    top: 89%;
+    transform: translate( -50%, -50% );
+    padding: 3px 15px 3px 25px;
+    color: white;
+    font-family: 'FontAwesome';
+    font-size: 30px !important;
+    background-color: rgba(23, 35, 34, 0.75);
+    border-radius: 5px 5px 5px 5px;
+}  
+}
+@media only screen and (max-width: 700px) {
+  .adminDemoVideo::before {
+    content: '\f00e';
+    z-index: 5;
+    position: absolute;
+    left:9%;
+    top:89%;
+	
+    transform: translate( -50%, -50% );
+    padding: 3px 5px 3px 5px;
+    color: white;
+    font-family: 'FontAwesome';
+    font-size:12px !important;
+    background-color: rgba(23, 35, 34, 0.75);
+    border-radius: 5px 5px 5px 5px;
+}  
+}
+</style> 
 </head>
 
-<body onload="initialize()" class="header-light sidebar-dark sidebar-expand pace-done">
+<body  class="header-light sidebar-dark sidebar-expand pace-done">
      <?php
         $id = $_SESSION['mm_id'];
         $merchant_detail = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$id."'"));
+		$product_zoom=$merchant_detail['product_zoom'];
+
 		 $online_pay=0;
 		 $discounted_product = $merchant_detail['discounted_product'];
 		 $online_pay=0;
@@ -683,6 +752,35 @@ input[name='p_total[]'],input[name='p_price[]']{
 	 }	
 	  $online_pay=1;
      $location_order=$merchant_detail['location_order'];
+     $koo_wallet=$merchant_detail['koo_wallet'];
+     $merchant_id=$merchant_detail['id'];
+     $special_coin_name=$merchant_detail['special_coin_name'];
+	 if($special_coin_name)
+	 {
+		$special_coin_min=$merchant_detail['special_coin_min'];
+		$special_coin_max=$merchant_detail['special_coin_max'];
+		if($_SESSION['login'])
+		{
+			// echo "SELECT * FROM special_coin_wallet WHERE  merchant_id='$merchant_id' and user_id ='".$_SESSION['login']."'";
+			
+		$special_wallet = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM special_coin_wallet WHERE  merchant_id='$merchant_id' and user_id ='".$_SESSION['login']."'"));
+		// print_R($special_wallet);
+		// die;
+		if($special_wallet)
+		 $special_bal=$special_wallet['coin_balance'];
+				else
+				 $special_bal=0;
+		}
+		else
+		{
+		  $special_bal=0;  	
+		}
+		
+	 }
+	 else
+	 {
+	    $special_bal=0;	 
+	 }
 	  $submerchantsql = mysqli_query($conn, "SELECT * FROM users WHERE mian_merchant='".$merchant_detail['name']."' ");
         $stallcount=mysqli_num_rows($submerchantsql); 
     // die;
@@ -729,6 +827,8 @@ input[name='p_total[]'],input[name='p_price[]']{
                      $id = $_SESSION['mm_id'];
       
                     $merchant_detail = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$id."'"));
+					
+					
                     if( isset($_SESSION['login']) ) {
                         $sql_transaction = "SELECT COUNT(id) ordered_num
                             FROM order_list
@@ -802,6 +902,7 @@ input[name='p_total[]'],input[name='p_price[]']{
                         <div class="main-btn1">  <a  href="<?php echo $site_url; ?>/rating_list.php"><?php echo $language["rating"]?> </div>
                         <?php if(isset($_SESSION['invitation_id']) && (!isset($_SESSION['login']))){?>
                         <a class="col-md-2" href="signup.php?invitation_id=<?php echo $_SESSION['invitation_id'];?>"><img src="img/join-us.jpg" style="width: 100px;"></a>
+						
                         <?php }?>
                         </div>
                         
@@ -829,15 +930,32 @@ input[name='p_total[]'],input[name='p_price[]']{
                     <div class="total_rat_abt">
                     <div class="about_uss"><a class="merchant_about" href="<?php echo $site_url; ?>/about_menu.php"><?php echo $language["about_us"]?></a></div>
                     <div class="rating_menuss"><a class="merchant_ratings" href="<?php echo $site_url; ?>/rating_list.php"><?php echo $language["rating"]?> </a></div>
-                    <div class="rating_menuss"><a class="merchant_ratings" href="<?php echo $site_url; ?>/location.php?address=<?php echo  $_SESSION['address_person'] ?>"><?php echo $language["location"]?> </a></div>
-                     <?php if($stallcount>0){ ?>
+                    <div class="rating_menuss">
+					<?php if($merchant_detail['google_map']){ ?>
+						<a class="merchant_ratings" target="_blank" href="http://maps.google.com/maps?q=<?php echo  $merchant_detail['google_map']; ?>"> LOCATION</a> 
+						
+						<?php  } else { ?>
+						<a class="merchant_ratings"  href="#"> LOCATION</a> 
+						
+						<?php }  ?>
+					<!--a class="merchant_ratings" href="<?php echo $site_url; ?>/location.php?address=<?php echo  $_SESSION['address_person'] ?>"><?php echo $language['location']?> </a!-->
+					
+					</div>
+                    
+					<?php if($stallcount>0){ ?>
 					 <div class="rating_menuss"><a class="merchant_ratings" onclick="our_stall()">Our Stalls </a></div>
 					 <?php } ?>
                     <?php if(isset($_SESSION['invitation_id']) && (!isset($_SESSION['login']))){?>
                     <a class="col-md-2" href="signup.php?invitation_id=<?php echo $_SESSION['invitation_id'];?>"><img src="img/join-us.jpg" style="width: 100px;"></a>
+					
                     <?php }?>
                     </div>
-                    <h2 style="width:200px;">Merchant</h2>
+					
+				  <div class="clear"></div>
+				  <a style="text-align:center;width:100%;margin-top:2%;" href="https://play.google.com/store/apps/details?id=com.koobigfamilies.app" target="blank">
+					<img style="max-width:140px;" src="google.png" alt=""></a>
+				  <div class="clear"></div>
+                    
                     </div>
                       <p style="color:red;" id="error_label"></p>
                     
@@ -1023,8 +1141,8 @@ input[name='p_total[]'],input[name='p_price[]']{
         <div class="location_merchant">
         <div class="name_mer">
           <div style="display:grid;grid-template-columns:.2fr 2fr;grid-column-gap: 10px;vertical-align: middle;align-content:center;>
-            
-            <label class="head_loca" style="display:grid;align-content:center;text-align:left;"><?php echo ucfirst(strtolower($language["delivery_location"])); ?></label>
+            <?php $deliver_place="Delivery Place"; ?>
+            <label class="head_loca" style="display:grid;align-content:center;text-align:left;"><?php echo ucfirst(strtolower($deliver_place)); ?></label>
             <input type="hidden" name="latitude" value="<?php echo $merchant_detail['latitude'];?>">
            
             <input type="hidden" name="longitude" value="<?php echo $merchant_detail['longitude'];?>">
@@ -1052,7 +1170,7 @@ input[name='p_total[]'],input[name='p_price[]']{
             // --------------------
             ?>
         <div class="row">
-          <div style="float:left;width:80%;margin-left:5%;"> <input class="form-control comment" id="mapSearch" name="location" placeholder="location" value="<?php  if($tablenumber!="Delivery") { echo $merchant_detail['google_map'];}?>" required style="margin: 0 !important;">
+          <div style="float:left;width:80%;margin-left:5%;"> <input class="form-control comment" id="mapSearch" name="location" placeholder="location" value="<?php  if($tablenumber!="Delivery") { echo $merchant_detail['google_map'];}?>"  style="margin: 0 !important;">
             </div>
           <div style="float:left;display:none;"><img src="https://img.icons8.com/office/16/000000/worldwide-location.png"></div>
         </div>
@@ -1087,7 +1205,7 @@ input[name='p_total[]'],input[name='p_price[]']{
             <input type="hidden" name='varient_must' id='varient_must'/>
         <input type="hidden" name='varient_count' value='0' id='varient_count'/>
             <label><?php echo "Table number"; ?></label>
-            <input type="text" class="form-control table"  name="table_type"  <?php if($merchant_detail['table_required']=="1"){ echo "required";} ?>  value="<?php echo $tablenumber; ?>"/>
+            <input type="Number" class="form-control table"  id="table_type" name="table_type"  <?php if($merchant_detail['table_required']=="1"){ echo "required";} ?>  value="<?php echo $tablenumber; ?>"/>
          <!--select name="table_type" class="form-control section-tables" required>
               
             </select!-->
@@ -1123,7 +1241,7 @@ input[name='p_total[]'],input[name='p_price[]']{
   
     <div class="container">
     <div class="row">
-	    <div class="col-xs-6" style="margin-left:2%;">
+	    <div class="col-xs-4" style="margin-left:2%;">
 		<input value='0' type="hidden" id="total_rebate_amount" name="total_rebate_amount"/>
 		<input type="hidden" value='0' id="total_cart_amount" name="total_cart_amount"/>
 		<input type="hidden" value='0' id="rem_amount" name="rem_amount"/>
@@ -1136,18 +1254,28 @@ input[name='p_total[]'],input[name='p_price[]']{
 		   <input type="submit" style="width:100% !important;border: 1px black solid;" class="btn btn-block btn-primary submit_button" name="cashpayment"  id="confm"  value="<?php echo $language["confirm_order"];?>">
           
 		</div>     
-        <div class="col-xs-5 online_label" style="margin-left:2%;">
-		<?php if($discounted_product){ ?>
-           <input type="submit"  style="width:100% !important;border: 1px black solid;" class="btn btn-block btn-primary submit_button online_pay" name="cashpayment" value='Confirm (E-wallet)'/>
+        <div class="col-xs-4 online_label" style="margin-left:1%;">
+		<?php if($discounted_product || $special_coin_name){ ?>
+            <input type="submit"  style="width:100% !important;border: 1px black solid;" class="btn btn-block btn-primary submit_button online_pay" name="cashpayment" value='Confirm (E-wallet) <?php if($special_coin_name && $_SESSION['login']){ echo "(".$special_coin_name." $".number_format($special_bal,2).")";} ?>'/>
         
 		<?php } else { ?>   
 		 
 		<?php } ?>   
         </div>
-       
+		<?php if($merchant_detail['paypal_enable']=="y"){ ?>
+       <div class="col-xs-3" style="margin-left:1%;margin-top:-3%;">
+	   
+	   <input type="image" class="paypal_pay" value="submit" src="https://miro.medium.com/max/312/1*MqdZnOy5ySk8PIUbUtt5Cg.png" alt="submit Button" onMouseOver="this.src='https://miro.medium.com/max/312/1*MqdZnOy5ySk8PIUbUtt5Cg.png'">
+		
+		
+	   </div>
+		<?php } ?>
     
     
     </div>
+	<div class="row">
+	   
+	</div>
 </div>
     
     
@@ -1157,14 +1285,33 @@ input[name='p_total[]'],input[name='p_price[]']{
         <input type="hidden" id="myr_input_bal" name="myr_input_bal" value="<?php echo $urecord['balance_myr']; ?>" />  
         <input type="hidden" id="usd_input_bal" name="usd_input_bal" value="<?php echo $urecord['balance_usd']; ?>" />  
         <input type="hidden" id="inr_input_bal" name="inr_input_bal" value="<?php echo $balance_inr; ?>" />  
+        <input type="hidden" id="special_input_bal" name="special_input_bal" value="<?php echo $special_bal; ?>" />  
     
        
        
         </div>
         </div>
-        <a href="#cartsection"><img src ="images/shopping-14-512.png" style="width:90px;height:90px;position: fixed;right: 10px;bottom: 70px;"></a>
+        <a href="#cartsection"><img id="cartmove" src ="images/shopping-14-512.png" style="width:90px;height:90px;position: fixed;right: 10px;bottom: 70px;"></a>
     
         </form>
+		<form id="paypal_form" action="<?php echo $paypalUrl; ?>" method="post">
+								<div class="panel price panel-red" style="padding:50px 5px;">
+									<input type="hidden" name="business" value="<?php echo $paypalId; ?>">
+									<input type="hidden" name="cmd" value="_xclick">
+									<input type="hidden" name="item_order_id">
+									<input type="hidden" name="item_name" value="koofamilies Order">
+									<input type="hidden" name="item_number" value="1">
+									<input type="hidden" name="no_shipping" value="1">
+									<input type="hidden" name="currency_code" value="MYR">
+									<input type="hidden" name="cancel_return" value="<?php echo $paypal_cancel_url."&sid=".$merchant_detail['mobile_number']; ?>">
+									<input type="hidden" name="return" value="<?php echo $paypal_success_url; ?>">
+									
+									
+									<input style="display:none;" type="number" class="form-control"  id="paypal_amount" name="amount" placeholder="Amount (in MYR)">
+									<br><br>
+									
+								</div>   
+		</form>
         <?php 
         // ---------------------------
         // Start of DrakkoFire's code 
@@ -1309,6 +1456,34 @@ input[name='p_total[]'],input[name='p_price[]']{
                     </div>
                     <div class="modal-footer" style="padding-bottom:2px;">
                     
+                    </div>
+               
+            </div>
+        </div>
+ </div>
+   <div class="modal fade" id="paypal_model" role="dialog">
+        <div class="modal-dialog">
+         
+
+            <!-- Modal content-->
+            <div class="modal-content">
+             
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title"></h4>
+                </div>
+                 
+                    <div class="modal-body" style="padding-bottom:0px;">
+                        <div class="col-md-12" style="text-align: center;">
+                          <h5>
+								Something Went Wrong to Complete Payment Try Again or Use cash method to complete it
+							</h5>
+                          
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="padding-bottom:2px;">
+                       <button id="paypal_cash" type="button" class="btn btn-primary" data-dismiss="modal" style="width:50%;margin-bottom: 3%;text-align: center;">Pay Cash</button>
+                       <button id="paypal_close" type="button" class="btn btn-primary" data-dismiss="modal" style="width:50%;margin-bottom: 3%;text-align: center;">Close</button>
                     </div>
                
             </div>
@@ -1660,13 +1835,19 @@ input[name='p_total[]'],input[name='p_price[]']{
 				<p id="with_wallet" style="font-size:16px;color:red;display:none;">
 				<span style='font-size:20px;'>&#128512;</span> 
 				<!--Congratulations, your order has just earned Rm <span class="rebate_amount_label"></span> into your Koo Coin wallet. You can use it after 24 hours !-->
-					Congratulation, your order is completed. <span id="with_wallet_span"> Please login to claim for your rebate of RM <span class="rebate_amount_label">15.20 </span> into your KOO Coin wallet.</span>  
-				
-				 </p>  
+					<?php if($special_coin_name){  echo "Congratulation, your order is completed. Please login to use $special_coin_name wallet.";?>
+					
+					<?php } else {?>
+					<!--Congratulation, your order is completed. <span id="with_wallet_span"> Please login to claim for your rebate of RM <span class="rebate_amount_label">15.20 </span> into your KOO Coin wallet.</span!-->  
+					Congratulation, your order is completed. Please login to use KOO Coin wallet.
+					<?php } ?>
+				 </p>    
 				 <p id="without_wallet" style="font-size: 16px; color: red;display:none;">
 				<span style="font-size:20px;">😀</span> 
 				<!--Congratulations, your order has just earned Rm <span class="rebate_amount_label"></span> into your Koo Coin wallet. You can use it after 24 hours !-->
-					Congratulation, your order is completed. Please login to use KOO Coin wallet. 
+					<?php if($special_coin_name){ echo "Congratulation, your order is completed. Please login to use $special_coin_name wallet.";} else { echo "Congratulation, your order is completed. Please login to use KOO Coin wallet.";} ?>
+					
+					
 				
 				 </p>
 			 
@@ -1681,13 +1862,24 @@ input[name='p_total[]'],input[name='p_price[]']{
 					<div style="margin: 2%;max-height: 80px;text-align: left;padding: 0%;" class="col-md-3 card bg-info text-white">
 						<div class="card-body wallet_select" wallet_name="CF"  type="usd_bal">CF <br> <span id="usd_bal"><?php if(isset($urecord['balance_usd'])){ echo $urecord['balance_usd'];} ?></span></div>
 					</div!-->
+					<?php if($special_coin_name){ ?>
+					 <div style="margin: 2%;max-height: 80px;text-align: left;padding: 0%;font-size: 13px;" class="col-md-7 card bg-info text-white">
+						<div class="card-body wallet_select" wallet_name="<?php echo $special_coin_name; ?>"  type="special_bal"  style="color:black;padding:1.00rem !important;font-size: 18px;">
+						 <?php echo $special_coin_name; ?>  RM <span id="special_bal" style="color:red;font-weight:bold;"><?php if(isset($special_bal)){ echo number_format($special_bal,2);} ?></span>
+						 </div>
+						
+				   </div>
+				    <small style="margin-left: 3%;color:red;">(Min RM <?php echo $merchant_detail['special_coin_min'];?> to use, and Max RM <?php echo $merchant_detail['special_coin_max'];?> per transaction)</small>
+					<?php } else { ?>
 				   <div style="margin: 2%;max-height: 80px;text-align: left;padding: 0%;font-size: 13px;" class="col-md-7 card bg-info text-white">
 						<div class="card-body wallet_select" wallet_name="KOO COIN"  type="inr_bal"  style="color:black;padding:1.00rem !important;font-size: 18px;">
 						 KOO REWARD  RM <span id="inr_bal" style="color:red;font-weight:bold;"><?php if(isset($balance_inr)){ echo number_format($balance_inr,2);} ?></span>
 						 </div>
 						
-				   </div>
-				    <small style="margin-left: 3%;color:red;">(Min RM 0.50 to use, and Max RM 10.00 per transaction)</small>
+					</div> 
+					 <small style="margin-left: 3%;color:red;">(Min RM 0.50 to use, and Max RM 10.00 per transaction)</small>
+					<?php } ?>
+				   
 				 <div clas="form-group" style="margin-left:3%;font-size:15px;">
 				 <p class="select_label" style="display:none;">Selected Wallet : <span id='wallet_name'></span></br>
 				    
@@ -1820,10 +2012,15 @@ input[name='p_total[]'],input[name='p_price[]']{
         var id = $("#remarks_area").data("id");
         // console.log(input_extras);
         // console.log(selected.toString().split("_").join(" "));
+        var qty = parseFloat($(".introduce-remarks.selected").parent().parent().find("input[name='qty[]']").val());
+		if(isNaN(qty)) {
+		var qty = 1;
+		}
+		// alert(qty);
         var unitPrice = parseFloat($(".introduce-remarks.selected").parent().parent().find("input[name='p_price[]']").val());
         // console.log(unitPrice);
         $(".introduce-remarks.selected").parent().parent().find("input[name='p_extra']").val(input_extras);
-        $(".introduce-remarks.selected").parent().parent().find("input[name='p_total[]']").val((input_extras + unitPrice < 0) ? 0 : (input_extras + unitPrice).toFixed(2));
+        $(".introduce-remarks.selected").parent().parent().find("input[name='p_total[]']").val((input_extras + unitPrice < 0) ? 0 : ((input_extras + unitPrice)*qty).toFixed(2));
         $(".introduce-remarks.selected").siblings("input[name='extra']").val(extras);
         $("input[name='single_ingredients'].selected").siblings("input[name='extra']").val(extras);
         if(!$(".introduce-remarks.selected").parent().hasClass("pop_model")){
@@ -1862,11 +2059,35 @@ input[name='p_total[]'],input[name='p_price[]']{
 
       e.preventDefault();
     });
+	 $("#paypal_cash").click(function(e){ 
+	 
+		$.ajax({
+             url:"functions.php",
+             type:"post",
+             data:{method:"paypalcash"},
+             dataType:'json',
+             success:function(response){
+				 var data = JSON.parse(JSON.stringify(response));
+					if(data.status==true)
+					{
+
+					   window.location.replace("https://www.koofamilies.com/orderlist.php");
+					}
+					else
+					{
+						alert(data.msg);  
+					}
+			 }
+		});			 
+	 });
+   $("#paypal_close").click(function(e){    
+      window.location.replace("https://www.koofamilies.com/view_merchant.php");
+   });
    $(".close_shop").click(function(e){
       $('#shop_model').modal('hide');
    });
     $("input[type='submit']").click(function(e){
-      var remarks = [];
+      var remarks = []; 
       var price_extra = [];
       $('#test input[name="ingredients"]').each(function() {
              remarks.push($(this).val());
@@ -1900,6 +2121,7 @@ input[name='p_total[]'],input[name='p_price[]']{
       console.log(result_price);
     });
     $("body").on("click",".introduce-remarks", function(e){
+		  e.preventDefault();
       $(this).addClass("selected");
       if($(this).parent().parent().parent().parent().hasClass("element-item")){
         var id = $(this).siblings("input[name='p_id']").val();
@@ -1911,7 +2133,7 @@ input[name='p_total[]'],input[name='p_price[]']{
       $(this).parent().parent().find("input[name='single_ingredients']").addClass("selected");
       var ingredients = $(this).parent().parent().find("input[name='ingredients']").val();
       $("#remarks_area .modal-body .btn-group .btn-secondary").removeClass("checkbox-checked").removeClass("active");
-      e.preventDefault();
+    
     });
 
     $(".modal-footer").on("click", ".introduce-remarks", function(){
@@ -1983,8 +2205,8 @@ input[name='p_total[]'],input[name='p_price[]']{
     var p_total=p_total.toFixed(2);
 
     // alert(p_total);
-	  $("#without_varient_footer").html("<a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal' style='top:unset;bottom:3px;right:100px;border-radius: 5px;'>Remarks</a><input type='hidden' name='single_ingredients' value='" + single_remarks + "'/><input type='hidden' name='extra' value='" + extra_price + "'/><span id='pop_cart' data-rebate='"+rebate+"' data-id='"+id+"' data-code='"+code+"'  data-name='"+name+"' data-quantity='"+quantity+"' data-pr=" + p_price + " class='close_pop btn btn-large btn-primary' data-dismiss='modal' style='background:#50D2B7;border:none;'>Ok</span>");
-   
+	  $("#without_varient_footer").html("<div class='row'><div class='col-md-12'>Quantity: <input name='quantity_input' min='1' type='number' class='quatity' value='" + quantity + "' style='width:2.5em;text-align:center' min='0' max='99'/></div></div><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal' style='top:unset;bottom:3px;right:100px;border-radius: 5px;'>Remarks</a><input type='hidden' name='single_ingredients' value='" + single_remarks + "'/><input type='hidden' name='extra' value='" + extra_price + "'/><span id='pop_cart' data-rebate='"+rebate+"' data-id='"+id+"' data-code='"+code+"'  data-name='"+name+"' data-quantity='"+quantity+"' data-pr=" + p_price + " class='close_pop btn btn-large btn-primary' data-dismiss='modal' style='background:#50D2B7;border:none;'>Ok</span>");
+    
    // $("#without_varient_footer").html("<a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal' style='top:unset;bottom:3px;right:100px;border-radius: 5px;'>Remarks</a><input type='hidden' name='single_ingredients' value='" + single_remarks + "'/><input type='hidden' name='extra' value='" + extra_price + "'/><span id='pop_cart' data-id='"+id+"' data-code='"+code+"'  data-name='"+name+"' data-quantity='"+quantity+"' data-pr=" + p_price + " class='close_pop btn btn-large btn-primary' data-dismiss='modal' style='background:#50D2B7;border:none;'>Ok</span>");
     // $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input style='width:50px;'  onchange='UpdateTotal("+id+" ,"+p_price+")'  type=number name='qty[]' maxlength='3' class='product_qty'  value="+quantity+" id='"+id+"_test_athy'><input type= hidden name='p_id[]' value= "+id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients' value='" + single_remarks + "'/></td><td>"+code+"</td><td><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>" + ((single_remarks == '') ? "Remarks" : single_remarks) +  "</a><input type='hidden' name='extra' value='"+extra_price+"'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='" + extra_price.toFixed(2) + "' readonly></td><td><input style='width:70px;' type='text' name='p_price[]' value= "+p_price.toFixed(2)+" readonly></td><td><input type='text' style='width:70px;' name='p_total[]' value= " + p_total + " readonly  id='"+id+"_cat_total'><input type='hidden' name='varient_type[]' value=''></td> </tr>");
     document.getElementById(child_id).classList.add("fa-check");
@@ -2001,7 +2223,11 @@ input[name='p_total[]'],input[name='p_price[]']{
         // $(".text_add_cart input[name='extra']").val('');
         // $("input[name='single_ingredients']").val('');
     
-   });  
+   });
+	$("#without_varient_footer").on("change", "input[name='quantity_input']", function(){
+      var newQuantity = $(this).val();
+      $(this).parent().parent().parent().find("#pop_cart").attr("data-quantity", newQuantity);
+   });
    $(".with_varient").on("click", function(){
     // $(this).hide();
 	// alert(4);  
@@ -2153,9 +2379,10 @@ input[name='p_total[]'],input[name='p_price[]']{
     jQuery(this).closest('tr').remove();
     
   });
-   $(document).on("click", '#pop_cart', function(event) {   
+    $(document).on("click", '#pop_cart', function(event) {   
    // alert(3);
    var varient_must=$('#varient_must').val();
+    var last_added_id = $(".producttr").length;
    var go_ahead="y";
    if(varient_must=="y")
    {
@@ -2207,11 +2434,16 @@ input[name='p_total[]'],input[name='p_price[]']{
 	 if(sub_count>0)
       var name=$(this).data("name")+"</br>-"+f_html;
 	else
-	var name=$(this).data("name");
-      var id=$(this).data("id");
+	  var name=$(this).data("name");
+      var s_id=$(this).data("id");
+      var id=$(this).data("id")+last_added_id;
+	  // alert(id);
 	  var rebate_per=$(this).data("rebate");
       var child_id="child_"+id;
+      var child_s_id="child_"+$(this).data("id");
+      var product_child_s_id="product_child_"+$(this).data("id");
       var product_child_id="product_child_"+id;
+      var extra_child_id="extra_child_"+id;
       var extra_price = 0;
       if(p_extra == ''){
         p_extra = 0;
@@ -2222,26 +2454,29 @@ input[name='p_total[]'],input[name='p_price[]']{
         }
       }
       var p_pop_price = $("#p_pop_price").val();
+	  var quantity=$(this).data("quantity");
       var product_price = (p_pop_price == "" || !p_pop_price) ? parseFloat($(this).data("pr")) : parseFloat(p_pop_price);
-      var p_total = (product_price + extra_price).toFixed(2);
+     var p_total = (product_price + extra_price).toFixed(2) * parseInt(quantity);
+	 var p_total=p_total.toFixed(2);
 	   var rebate_amount=rebatevalue(p_total,rebate_per);  
       $("#p_pop_price").val("");
 	  // alert(rebate_amount);  
       console.log(p_price);
-      console.log(p_extra);
+      console.log(p_extra);  
       console.log(p_total);
-      var quantity=$(this).data("quantity");
+      
       var code=$(this).data("code");
-      document.getElementById(child_id).classList.add("fa-plus");
-      document.getElementById(child_id).classList.remove("fa-check");
-      document.getElementById(product_child_id).style.backgroundColor = "#50d2b7";
+      document.getElementById(child_s_id).classList.add("fa-plus");
+      document.getElementById(child_s_id).classList.remove("fa-check");
+      document.getElementById(product_child_s_id).style.backgroundColor = "#50d2b7";
       var varient_type=$("#varient_type").html();
       // alert(varient_type); 
-      $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input type='hidden' name='rebate_amount[]' class='rebate_amount' value="+rebate_amount+" id='"+id+"rebate_amount'><input type='hidden' name='rebate_per[]' value="+rebate_per+" id='"+id+"rebate_per'><input style='width:50px;'  onchange='UpdateTotal("+id+" ,"+product_price+")'  type=number name='qty[]' min='1' maxlength='3' class='product_qty'  value="+quantity+" id='"+id+"_test_athy'><input type= hidden name='p_id[]' value= "+id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients' value='" + single_remarks + "'/></td><td>"+code+"</td><td><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>" + ((single_remarks == '') ? "Remarks" : single_remarks) +  "</a><input type='hidden' name='extra' value='"+extra_price+"'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='" + extra_price.toFixed(2) + "' readonly></td><td><input style='width:70px;' type='text' name='p_price[]' value='"+product_price+"' readonly></td><td><input type='text' style='width:70px;' class='p_total' name='p_total[]' value= "+ p_total + " readonly  id='"+id+"_cat_total'><input type='hidden' name='varient_type[]' value="+varient_type+"></td> </tr>");
-      // alert('The product added');
+    $("#test").append("<tr class='producttr'>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input type='hidden' name='rebate_amount[]' class='rebate_amount' value="+rebate_amount+" id='"+id+"rebate_amount'><input type='hidden' name='rebate_per[]' value="+rebate_per+" id='"+id+"rebate_per'><input style='width:50px;'  onchange='UpdateTotal("+id+","+product_price+")'  type=number name='qty[]' min='1' maxlength='3' class='product_qty quatity'  value="+quantity+" id='"+id+"_test_athy'><input type= hidden name='p_id[]' value= "+s_id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients' value='" + single_remarks + "'/></td><td>"+code+"</td><td><a href='#remarks_area' data-rid='"+id+"' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>" + ((single_remarks == '') ? "Remarks" : single_remarks) +  "</a><input type='hidden' id='"+extra_child_id+"' name='extra' value='"+extra_price+"'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' id='"+extra_child_id+"' value='" + extra_price.toFixed(2) + "' readonly></td><td><input style='width:70px;' type='text' name='p_price[]' value='"+product_price+"' readonly></td><td><input type='text' style='width:70px;' class='p_total' name='p_total[]' value= "+ p_total + " readonly  id='"+id+"_cat_total'><input type='hidden' name='varient_type[]' value="+varient_type+"></td> </tr>");
+     
+	  // alert('The product added');
       $("#varient_type").html('');   
       $("#varient").html('');  
-   }
+   }    
    else
    {
     $('#varient_error').show();
@@ -2672,7 +2907,7 @@ $('.master_category_filter').on( 'click', function(e) {
 
     $grid_sub.on( 'arrangeComplete', function ( event, filteredItems) {
         console.log(event, filteredItems);
-        $(filteredItems[0].element).find('button').trigger('click');
+        // $(filteredItems[0].element).find('button').trigger('click');
         console.log('am called');
     });
 
@@ -2959,11 +3194,39 @@ img.make_bigger {
 
 <script>
 $(document).ready(function(){
+     
+	 $("#cartmove").click(function(){
+		 // alert(3);
+		// $("#table_type").focus();
+		 setTimeout(function() { $('input[name="table_type"]').focus() },1000);
+	  });
    $('#test').html();
-   var already_login='<?php echo $login_user_id; ?>';
-	
+    var already_login='<?php echo $login_user_id; ?>';
+   if(already_login)
+    {
+	   var local_id=localStorage.getItem("login_cache_id");
+		if(local_id=='' || local_id==null)
+		{
+			localStorage.setItem('login_cache_id','<?php echo $login_user_id;?>');
+			localStorage.setItem('login_role_id','<?php echo "1";?>');
+		}
+	}
+   var p_status='<?php echo $p_status; ?>';
+   var o_done='<?php echo $o_done; ?>';
+	if(o_done=="done")
+  {
+	var msg="Order sent";  
+	$('#show_msg').html(msg);
+	$('#AlerModel').modal('show'); 
+	setTimeout(function(){ $("#AlerModel").modal("hide"); },3000);  
+  }
   var location_order='<?php echo $location_order; ?>';
   var shop_status=$('#shop_status').val();
+  
+if(p_status=="paypalcancel")
+{
+	$('#paypal_model').modal('show');
+}
   if(location_order==1)
   {
     
@@ -3039,6 +3302,8 @@ $(document).ready(function(){
     var latitude = 0;
     var longitude = 0;
     
+	  if(location_order==1)
+	{
   navigator.geolocation.watchPosition(function(position) {
     // alert("i'm tracking you!");
     },
@@ -3079,7 +3344,7 @@ $(document).ready(function(){
            // getFavorite("Foods and Beverage, such as restaurants, healthy foods, franchise, etc", $(".business_type").attr('user_id'));
            //getNearbyRestaurant("Foods and Beverage, such as restaurants, healthy foods, franchise, etc", $(".business_type").attr('user_id'));
         });
-      
+	}
   
    var searchBox = new google.maps.places.SearchBox(document.getElementById('mapSearch'));
             searchBox.addListener('places_changed', function() {
@@ -3291,9 +3556,8 @@ $(document).ready(function(){
     }
     var p_total = p_price *quantity ;
     p_total = p_total.toFixed(2);
-
-    $("#test").append("<tr>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input style='width:50px;' maxlength='3'  onchange='UpdateTotal("+id+" ,"+p_price+")' min='1'  type=number name='qty[]' class='product_qty' value="+quantity+" id='"+id+"_test_athy'><input type= hidden name='p_id[]' value= "+id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients'/></td><td>"+code+"</td><td><a href='#remarks_area' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>Remarks</a><input type='hidden' name='extra'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' value='0' readonly></td>  <td><input style='width:70px;' type='text' name='p_price[]' value= "+p_price+" readonly></td><td><input type='text' style='width:70px;' name='p_total[]' value= "+p_total+" readonly  id='"+id+"_cat_total'></td> </tr>");
-    alert('The product added');
+	 $("#test").append("<tr class='producttr'>  <td><button type='button' class='removebutton'>X</button> </td><td>"+name+"</td><td><input type='hidden' name='rebate_amount[]' class='rebate_amount' value="+rebate_amount+" id='"+id+"rebate_amount'><input type='hidden' name='rebate_per[]' value="+rebate_per+" id='"+id+"rebate_per'><input style='width:50px;'  onchange='UpdateTotal("+id+","+product_price+")'  type=number name='qty[]' min='1' maxlength='3' class='product_qty quatity'  value="+quantity+" id='"+id+"_test_athy'><input type= hidden name='p_id[]' value= "+s_id+"><input type= hidden name='p_code[]' value= "+code+"><input type='hidden' name='ingredients' value='" + single_remarks + "'/></td><td>"+code+"</td><td><a href='#remarks_area' data-rid='"+id+"' role='button' class='introduce-remarks btn btn-large btn-primary' data-toggle='modal'>" + ((single_remarks == '') ? "Remarks" : single_remarks) +  "</a><input type='hidden' id='"+extra_child_id+"' name='extra' value='"+extra_price+"'></td><td><input style='width:70px;text-align:right;' type='text' name='p_extra' id='"+extra_child_id+"' value='" + extra_price.toFixed(2) + "' readonly></td><td><input style='width:70px;' type='text' name='p_price[]' value='"+product_price+"' readonly></td><td><input type='text' style='width:70px;' class='p_total' name='p_total[]' value= "+ p_total + " readonly  id='"+id+"_cat_total'><input type='hidden' name='varient_type[]' value="+varient_type+"></td> </tr>");
+       alert('The product added');
   });
                 
              }
@@ -3323,12 +3587,16 @@ $(document).ready(function(){
 		  }
 		  if($('#table_type').prop('required')){
 			  if(table_type=='')
-			  var s_flag=false;
-			  // return false;
+			  {
+				  $('#table_type').focus();
+				var s_flag=false;
+				// return false;
+			  }
 		  }
 		  
 		   if(s_flag)
 		   {
+			    // alert(3);
 			    $(".rebate_amount").each(function(){
 				   // var total_rebate+= $(this).val();
 				   total_rebate += parseFloat($(this).val());
@@ -3337,6 +3605,7 @@ $(document).ready(function(){
 				   // var total_rebate+= $(this).val();
 				   total_amount += parseFloat($(this).val());
 			   });
+			   // alert(total_amount);
 			   var total_amount=total_amount.toFixed(2);
 			     var total_rebate=total_rebate.toFixed(2);
 			   $('#total_rebate_amount').val(total_rebate);
@@ -3463,7 +3732,89 @@ $(document).ready(function(){
 			   $(".forgot_now").show();
 			  $('.forgot-form').show();
 		  });  
+		  
+		  // paypal pay button click 
+		$(".paypal_pay").click(function(e){
+			 e.preventDefault();
+			var product_qty=$('.product_qty').val();
+			var table_type=$('#table_type').val();
+			var number=$('#mobile_number').val();
+			var total_rebate=0;
+			var total_amount=0;
+			var s_flag=true;
+			if ((product_qty == null) || (product_qty=='')){
+			// alert('Without Prouct add cant able to go ahead.');
+			$('#show_msg').html("Without Prouct add cant able to go ahead");
+			 $('#AlerModel').modal('show');
+			var s_flag=false;
+			return false;  
+			}
+			if(number.length >= 9 && number.length <= 10 && number[0] == 1){
+			}
+			else
+			{
+				$('#mobile_number').focus();
+			   var s_flag=false;
+			}
+			if($('#table_type').prop('required')){
+			  if(table_type=='')
+			  {
+				  $('#table_type').focus();
+				var s_flag=false;
+				// return false;
+			  }
+		  }
+		  if(s_flag)
+		  {
+			
+			   $(".p_total").each(function(){
+				   // var total_rebate+= $(this).val();
+				   total_amount += parseFloat($(this).val());
+			   });
+			   // alert(total_amount);
+			    var total_amount=total_amount.toFixed(2);
+			   	$('#paypal_amount').val(total_amount);   
+			  
+				$('#total_cart_amount').val(total_amount);
+			
+			  $.ajax({
+				type: 'post',
+				  dataType : 'json',
+				url: 'order_payal_cash.php',
+				data: $('#order_place').serialize(),
+				success: function (response) {
+					var data = JSON.parse(JSON.stringify(response));
+					if(data.status==true)
+					{
+						$('.paypal_pay').hide();
+						if(data.order_id)
+						{
+							// alert(data.order_id);
+							$('#item_order_id').val(data.order_id);
+							$('#paypal_form').submit();
+						}
+						else
+						{
+							alert(data.msg);
+						}
+						
+					}
+					else
+					{
+						alert(data.msg);
+					}
+				 
+				}
+			  });
+		     // alert('Ready To take payment'); 
+		  }
+		  return false;
+		  if(s_flag)
+		  $('input[type=submit]', this).attr('disabled', 'disabled');
+		
+	 });
 		  $(".online_pay").click(function(e){
+			 
 		 var product_qty=$('.product_qty').val();
 		  var table_type=$('#table_type').val();
 		 var number=$('#mobile_number').val();
@@ -3482,12 +3833,16 @@ $(document).ready(function(){
 		  }
 		  else
 		  {
+			  $('#mobile_number').focus();
 			   var s_flag=false;
 		  }
 		  if($('#table_type').prop('required')){
 			  if(table_type=='')
-			  var s_flag=false;
-			  // return false;
+			  {
+				  $('#table_type').focus();
+				var s_flag=false;
+				// return false;
+			  }
 		  }
 		     
 		  if(s_flag)
@@ -3538,6 +3893,8 @@ $(document).ready(function(){
 			 if(!already_login)
 			{
 				var mobile_number=$('#mobile_number').val();
+				var merchant_id='<?php echo $id; ?>';
+				var special_coin_name='<?php echo $special_coin_name; ?>';
 				if(mobile_number)
 				{
 				// alert(mobile_number);
@@ -3545,7 +3902,7 @@ $(document).ready(function(){
 					url: 'functions.php',
 					type:'POST',
 					dataType : 'json',
-					data:{mobile_number:mobile_number,method:"usercheck"},
+					data:{mobile_number:mobile_number,method:"usercheck",merchant_id:merchant_id,special_coin_name:special_coin_name},
 					success: function (res) {
 					var data = JSON.parse(JSON.stringify(res));
 					// alert(JSON.stringify(data));
@@ -3557,9 +3914,11 @@ $(document).ready(function(){
 							$('#myr_bal').html(data.data.balance_myr);
 							$('#usd_bal').html(data.data.balance_usd);
 							$('#inr_bal').html(data.data.balance_inr);
+							$('#special_bal').html(data.data.balance_special);
 							$('#myr_input_bal').val(data.data.balance_myr);
 							$('#usd_input_bal').val(data.data.balance_usd);
 							$('#inr_input_bal').val(data.data.balance_inr);
+							$('#special_input_bal').val(data.data.balance_special);
 							$('#newuser_model').modal('show');
 							$('.forgot-form').hide();
 							$('.forgot_reset').hide();
@@ -3605,76 +3964,97 @@ $(document).ready(function(){
 		
 	 });
 	 $(".wallet_select").click(function(){
-			var type = $(this).attr('type');
-			var w_bal =0;
-			// alert(type);
-			var wallet_name = $(this).attr('wallet_name');
-			if(type=="myr_bal")
-			w_bal=$('#myr_input_bal').val(); 
-			if(type=="usd_bal")
-			w_bal=$('#usd_input_bal').val(); 
-			if(type=="inr_bal")
-			w_bal=$('#inr_input_bal').val(); 
-			$('#wallet_selected').val('y');
-			$('#selected_wallet').val(type);
-			$('#selected_wallet_bal').val(w_bal);
-			$('.select_label').show();
-			// alert(w_bal);
-			var p_bal=0;
-			  $('#wallet_name').html(wallet_name);
-			if((w_bal>=0.5))
+		    var special_coin_name='<?php  echo $special_coin_name;?>';
+			if(special_coin_name)
 			{
-				if(w_bal>10)
-					p_bal=10;
-				else 
-				p_bal=w_bal;	
-			   var p_bal=parseFloat(p_bal);
-			   	var total_amount=$('#total_cart_amount').val();
-				
-				if(p_bal>total_amount)    
-					var p_bal=total_amount;
-				// alert()
-			   p_bal = (parseInt(p_bal * 10)/10).toFixed(2);
-			   
-				$('#wallet_payment_label').show();
-				//$('#bal_payment_label').show();
-			   $('#wallet_payment_label').html("Paying By Wallet Rm: <span style='color:black;font-weight:bold;'>"+p_bal+"</span></br>");
-			
-				var rebate_amount=$('#total_rebate_amount').val();
-				var merchant_id='<?php echo $id; ?>';
-				var selected_wallet_bal=$('#selected_wallet_bal').val();
-				if(selected_wallet_bal>10)
-					selected_wallet_bal=10;
-				 selected_wallet_bal = (parseInt(selected_wallet_bal * 10)/10).toFixed(2);
-				var rem=0;
-				if(parseFloat(selected_wallet_bal)<parseFloat(total_amount))
-				{
-					var rem=parseFloat(total_amount)-parseFloat(selected_wallet_bal);
-					var rem=parseFloat(rem).toFixed(2);
-					var payable_amount=selected_wallet_bal;
-						var payable_amount=parseFloat(payable_amount).toFixed(2);
-						var selected_wallet_bal=parseFloat(selected_wallet_bal).toFixed(2);
-					// var p_msg="You are going to pay Rm "+selected_wallet_bal+" throught your wallet ,The Remaining Rm balance of "+rem+" will be paid by you via Cash";	
-				}
-				else
-				{
-					var total_amount=parseFloat(total_amount).toFixed(2);
-				  // var p_msg="You are going to pay Rm "+total_amount+" throught your wallet";	
-				  var payable_amount=total_amount;
-				}
-			  $('#bal_to_paid_label').show();
-			  $('#bal_to_paid_label').html("Balance to be paid by cash Rm: <span style='color:black;font-weight:bold;'>"+rem+"</span></br>");
-			
-			  $('.wallet_final_payment').show(); 
+				var special_coin_min='<?php  echo $special_coin_min;?>';
+				var special_coin_max='<?php  echo $special_coin_max;?>';
+				w_bal=$('#special_input_bal').val(); 
+				var type =special_coin_name;
+				var min_bal=special_coin_min;
+				var max_bal=special_coin_max;
+				var rebate_amount=0;
+				var wallet_name=special_coin_name;
 			}
 			else
-			{  
-		         
-				$('#LesaaAmountModel').modal('show');
-				// alert('Insufficient balance for deduction, please select other wallet or pay by cash. ');
-				
-				exit;
+			{
+				var type = $(this).attr('type');
+				var w_bal =0;
+				// alert(type);
+				var wallet_name = $(this).attr('wallet_name');
+				if(type=="myr_bal")
+				w_bal=$('#myr_input_bal').val(); 
+				if(type=="usd_bal")
+				w_bal=$('#usd_input_bal').val(); 
+				if(type=="inr_bal")
+				w_bal=$('#inr_input_bal').val(); 
+				var min_bal=0.5;
+				var max_bal=10;
+				var rebate_amount=$('#total_rebate_amount').val();
 			}
+			// alert(w_bal);
+			// alert(min_bal);
+			 $('#wallet_selected').val('y');
+				$('#selected_wallet').val(type);
+				$('#selected_wallet_bal').val(w_bal);
+				$('.select_label').show();
+				// alert(w_bal);
+				var p_bal=0;
+				  $('#wallet_name').html(wallet_name);
+				if((parseFloat(w_bal)>=parseFloat(min_bal)))
+				{
+					if(parseFloat(w_bal)>parseFloat(max_bal))
+						p_bal=max_bal;
+					else 
+					p_bal=w_bal;	
+				   var p_bal=parseFloat(p_bal);
+					var total_amount=$('#total_cart_amount').val();
+					
+					if(parseFloat(p_bal)>parseFloat(total_amount))    
+						var p_bal=total_amount;
+					// alert()
+				   p_bal = (parseInt(p_bal * 10)/10).toFixed(2);
+				   
+					$('#wallet_payment_label').show();
+					//$('#bal_payment_label').show();
+				   $('#wallet_payment_label').html("Paying By Wallet Rm: <span style='color:black;font-weight:bold;'>"+p_bal+"</span></br>");
+				
+					
+					var merchant_id='<?php echo $id; ?>';
+					var selected_wallet_bal=$('#selected_wallet_bal').val();
+					if(parseFloat(selected_wallet_bal)>parseFloat(max_bal))
+						selected_wallet_bal=max_bal;
+					 selected_wallet_bal = (parseInt(selected_wallet_bal * 10)/10).toFixed(2);
+					var rem=0;
+					if(parseFloat(selected_wallet_bal)<parseFloat(total_amount))
+					{
+						var rem=parseFloat(total_amount)-parseFloat(selected_wallet_bal);
+						var rem=parseFloat(rem).toFixed(2);
+						var payable_amount=selected_wallet_bal;
+							var payable_amount=parseFloat(payable_amount).toFixed(2);
+							var selected_wallet_bal=parseFloat(selected_wallet_bal).toFixed(2);
+						// var p_msg="You are going to pay Rm "+selected_wallet_bal+" throught your wallet ,The Remaining Rm balance of "+rem+" will be paid by you via Cash";	
+					}
+					else
+					{
+						var total_amount=parseFloat(total_amount).toFixed(2);
+					  // var p_msg="You are going to pay Rm "+total_amount+" throught your wallet";	
+					  var payable_amount=total_amount;
+					}
+				  $('#bal_to_paid_label').show();
+				  $('#bal_to_paid_label').html("Balance to be paid by cash Rm: <span style='color:black;font-weight:bold;'>"+rem+"</span></br>");
+				
+				  $('.wallet_final_payment').show(); 
+				}  
+				else
+				{  
+					
+					$('#LesaaAmountModel').modal('show');
+					// alert('Insufficient balance for deduction, please select other wallet or pay by cash. ');
+					
+					exit;
+				}
+			
 	  });
 	  $(".cash_pay").click(function(){
 		  $(this).removeClass(" btn-primary").addClass("btn-default");
@@ -3684,18 +4064,25 @@ $(document).ready(function(){
 		$(this).removeClass(" btn-primary").addClass("btn-default");
 		$("#order_place").submit();
 	  });
+	  
 		
 	  $(".wallet_final_payment").click(function(){
 		var total_amount=$('#total_cart_amount').val();
 		var rebate_amount=$('#total_rebate_amount').val();
 		var merchant_id='<?php echo $id; ?>';
 		var selected_wallet_bal=$('#selected_wallet_bal').val();
-		if(selected_wallet_bal>10)
-			selected_wallet_bal=10;
+		var special_coin_name='<?php  echo $special_coin_name;?>';
+		var special_coin_max='<?php  echo $special_coin_max;?>';
+		if(special_coin_name)
+			var max_bal=special_coin_max;
+		else 
+			var max_bal=10;
+		if(parseFloat(selected_wallet_bal)>parseFloat(max_bal))
+			selected_wallet_bal=max_bal;
 		var rem=0;
 		selected_wallet_bal = (parseInt(selected_wallet_bal * 10)/10).toFixed(2);
 		if(parseFloat(selected_wallet_bal)<parseFloat(total_amount))
-		{
+		{ 
 			var rem=parseFloat(total_amount)-parseFloat(selected_wallet_bal);
 			var rem=parseFloat(rem).toFixed(2);
 			var payable_amount=selected_wallet_bal;
@@ -3831,7 +4218,7 @@ function codeLatLng(lat, lng) {
           alert("No results found");
         }
       } else {
-        alert("Geocoder failed due to: " + status);
+        // alert("Geocoder failed due to: " + status);
       }
     });
   }
@@ -3931,12 +4318,19 @@ var chat_appid = '52013';
 </script>
 
 <script>
-function UpdateTotal(id=0 , uprice= 0){
+function UpdateTotal(id, uprice= 0){
+	// alert(id);           
+	// alert(uprice);     
   var qty = $("#"+id+"_test_athy").val();
+  var extra_val = $("#extra_child_"+id).val();
   // var extra = $("#"+id+"_test_athy").parent().parent().find("input[name='p_extra']").val().parseInt();
   //alert(qty);
-  //alert(qty);
-  var total =  parseFloat(Number(qty*uprice).toFixed(2));
+  // alert(extra_val);
+  if(extra_val=='')
+	  var extra_val=0;
+  var p_t=parseFloat(uprice)+parseFloat(extra_val);
+  var total =  parseFloat(Number(qty*p_t).toFixed(2));
+  // alert(qty);
   $("#"+id+"_cat_total").val(total);
 }
 function UpdateTotalCart(id=0){

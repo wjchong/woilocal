@@ -40,7 +40,7 @@
         text-align: left;
     }
     .merchant-layout-2 .text_add_cart, .modal-footer .text_add_cart{
-        background-color: #50d2b7;
+        background-color:red;
         width: 30px;
         height: 30px;
         font-size: 16px;
@@ -155,7 +155,7 @@ function isActive($date){
 //$categories = mysqli_query($conn, "SELECT DISTINCT(products.category),created_date FROM products WHERE user_id ='".$id."' and status=0 ORDER BY created_date ASC");
 $categories_q = mysqli_query($conn, "SELECT * FROM cat_mater WHERE UserID ='".$id."' and IsEnable=1 ");
 if($product['pro_ct'] > 0) { ?>
-    <div class="col-md-12 merchant-layout-2">
+    <div class="col-md-12 merchant-layout-2" style="margin-bottom: 5%;">
         <div class="filter-button-group parent-category-menu">
             <?php
             $index = 1;
@@ -243,6 +243,7 @@ if($product['pro_ct'] > 0) { ?>
 						// die;
 						
                         array_push($products_id_global, $row['id']);
+						
                         ?>
                         <?php   //if(!empty($row['image'])) { ?>
 
@@ -252,21 +253,30 @@ if($product['pro_ct'] > 0) { ?>
                                     <?php if(!empty($row['image'])) { ?>
                                         <div class="col-5 col-sm-4">
                                             <?php if(isActive($row['active_time'])){
-                                                    if($row['on_stock']){
-                                             ?>
-                                                <div class="container_test">
-                                            <?php }else{
-                                                ?>
+                                                    if($row['on_stock']){ ?>
+                                                <div class="container_test gallery">
+                                            <?php }else{  ?>
                                                   <div class='container_test out_of_stock'>      
-                                            <?php 
-                                                    }
-                                                }else{
-                                                    ?>
+                                            <?php } }else{ ?>
                                                   <div class='container_test not_available'>      
-                                            <?php
-                                                } 
-                                            ?>
-                                                    <img src="<?php echo $site_url; ?>/images/product_images/<?php echo $row['image'];  ?>" class="img-fluid" >
+                                            <?php }  ?>
+											 <?php if($product_zoom){ 
+											     $variableA1=str_replace('"','',$row['product_name']);
+											     $variableA2=$row['product_price'];
+											                                                 ?>
+											 <a class="adminDemoVideo" href="<?php echo $site_url;?>/images/product_images/<?php echo $row['image'];  ?>" data-fancybox data-caption="<div class='card' style='text-align:center;'>
+ 
+                                                <button data-fancybox-close='' style='float:right;' class='fancybox-button fancybox-button--close' title='Close'><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 10.6L6.6 5.2 5.2 6.6l5.4 5.4-5.4 5.4 1.4 1.4 5.4-5.4 5.4 5.4 1.4-1.4-5.4-5.4 5.4-5.4-1.4-1.4-5.4 5.4z'></path></svg></button>
+                                                    <div class='card-body' style='padding:0.50rem;'> 
+                                                        <h5 style='font-weight:bold'><?php echo $variableA1; ?></h5>
+                                                        <p style='color:black;'>Pr: Rm <?php echo $variableA2; ?></p>
+                                                    </div>
+                                                </div>">
+                                                <img src="<?php echo $site_url;?>/images/product_images/<?php echo $row['image'];  ?>" />
+                                            </a>
+											<?php }  else {  ?>
+											  <img src="<?php echo $site_url; ?>/images/product_images/<?php echo $row['image'];  ?>" class="img-fluid" >
+											<?php } ?>
                                             </div>
                                         </div>
                                         <div class="col-7 col-sm-8 pl-2">
@@ -275,8 +285,8 @@ if($product['pro_ct'] > 0) { ?>
                                     <?php } ?>
                                             <input type="hidden" id="id" name="m_id" value="<?php echo $id;?>">
                                             <input type="hidden" id="id" name="p_id" value="<?php echo $row['id'];?>">
-                                            <?php if(isActive($row['active_time']) && $row['on_stock']){ ?>
-                                            <button role="button" style="display:none!important" class="pro_status introduce-remarks btn btn-large btn-primary" data-toggle="modal" data-target="#remarks_area" disabled="disabled">Remarks</button>
+                                            <?php if(isActive($row['active_time']) && $row['on_stock']){ ?>     
+                                            <button  style="" role="button" data-rid="<?php echo $row['id']; ?>"  class="pro_status introduce-remarks btn btn-large btn-primary" data-toggle="modal" data-target="#remarks_area" disabled="disabled">Remarks</button>
                                           
 										   <input type="hidden" name="single_ingredients" value=""/>
                                             <input type="hidden" name="extra" value=""/>   
@@ -285,6 +295,8 @@ if($product['pro_ct'] > 0) { ?>
                                              <div style="float: left;">
                                                  <p class="mBt10"><?php echo $row['remark']; ?></p>
                                                  <p class="mBt10"><?php echo 'Pr : Rm'.number_format($row['product_price'],2); ?></p>
+												
+												 
                                              </div>   
                                             <div class="common_quant">
 											<?php if($row['varient_exit']=="y") { $cart_class="with_varient";} else { $cart_class="without_varient";} ?>

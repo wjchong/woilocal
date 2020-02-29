@@ -13,7 +13,7 @@
 	    
 		$pdf->SetMargins(4, 10, 4);
 		$pdf->AddPage();
-		$pdf->Ln();
+		// $pdf->Ln();
 		$pdf->SetX(20);
 		$pdf->SetFont("Arial", "", 8);
 		$pdf->Write(4, $profile['company']);
@@ -168,5 +168,5 @@
 	}
 
 	
-	header("LOCATION: http://local.koofamilies.com/orderview.php");
+	// header("LOCATION: http://local.koofamilies.com/orderview.php");
 ?>

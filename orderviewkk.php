@@ -1,7 +1,13 @@
 <?php
 
-session_start();
 include("config.php");
+
+if($_SESSION['login']=='')
+{
+	include("dlogin.php");
+}  
+// print_R($_SESSION);
+// die;
 $current_time = date('Y-m-d H:i:s');
 function ceiling($number, $significance = 1)
 								{
@@ -17,7 +23,10 @@ function checkSession(){
         return false;
     }
 }
-// if(!isset($_SESSION['login']) || empty($_SESSION['login']))
+if(!isset($_SESSION['login']) || empty($_SESSION['login'])){
+	header("location:logout.php");
+}
+// if(!isset($loginidset) || empty($loginidset))
 // {
     // header("location:logout.php");
 // }else{
@@ -26,10 +35,132 @@ function checkSession(){
     // }
 // }
 /* code for limit  */
-$sql = "SELECT count(id) as total_count FROM order_list WHERE merchant_id ='".$_SESSION['login']."'";
+$profile_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='".$_SESSION['login']."'"));
+// print_R($profile_data);
+// die;
+if($profile_data['user_roles']==5)
+{
+	$loginidset=$profile_data['parentid'];
+}
+else
+{
+
+	$loginidset=$_SESSION['login'];
+
+}
+$parent_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id='$loginidset'"));
+ $cash_check=$parent_data['cash_system'];
+
+$cash_match="n";
+  $cash_allow=$_SESSION['cash_allow'];
+
+ $cash_id=$_SESSION['cash_id'];
+
+if($cash_allow)
+{
+	if($cash_check=="on")
+	{
+		
+		if($cash_id)
+		{
+			$cash_match="y";
+		}
+	}
+}
+// echo $cash_match;
+// die;
+$_SESSION['cash_allow']='';
+$stock_inventory=$profile_data['stock_inventory'];
+$process_password_need=$profile_data['process_password_need'];
+if($process_password_need)
+{
+	$p_class="process_upss_delete_special";
+	
+}
+
+else
+{
+	$p_class="";
+}
+if($stock_inventory=="on")
+{
+   $stockq="select * from order_list where merchant_id='".$loginidset."' and order_place='live' and stock_check='n'";
+
+	$stockquery=mysqli_query($conn,$stockq);  
+   $i=1;   $ps=0;
+   while ($r=mysqli_fetch_assoc($stockquery)){
+	   // print_r($r);
+	   // die;
+	   $s_p_id=$r['id'];
+	     $parray=explode(",",$r['product_id']);
+	     $qarray=explode(",",$r['quantity']);
+		// $qarray=explode(",",$qty_list);
+		foreach($parray as $s_id)
+			{
+				 $qty_s=$qarray[$ps];
+				
+				$sdetail= mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM products WHERE id='".$s_id."'"));
+				$parent_id=$sdetail['parent_id'];
+				$stock_value=$sdetail['stock_value'];
+				
+				if($parent_id)
+				{
+					$sdetail= mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM products WHERE id='".$parent_id."'"));	
+					$single_p_id=$parent_id;
+				}
+				else
+				{
+					$single_p_id=$s_id;
+				}
+				$maintain_stock=$sdetail['maintain_stock'];
+				// print_R($sdetail);
+				// die;
+				if($maintain_stock=="on")
+				{
+					 $old_pending_stock=$sdetail['pending_stock'];
+					
+					$p_name=$sdetail['product_name'];
+					$reorder_level=$sdetail['reorder_level'];
+					
+					if($stock_value>1)
+					{
+						$qty_s=$stock_value*$qty_s;
+					}
+					  $new_stock=$old_pending_stock-$qty_s;
+					// echo $new_stock;
+					// die;
+					if($new_stock<=0)
+					{  
+						
+						$update=mysqli_query($conn, "UPDATE products SET pending_stock='$new_stock',on_stock='0' WHERE id='$single_p_id'");
+							
+						$update=mysqli_query($conn, "UPDATE products SET pending_stock='$new_stock',on_stock='0' WHERE id='$s_id'");
+						$noti=$p_name."is Reached Below Reorder Level,Refill it";
+						mysqli_query($conn, "INSERT INTO `stock_notification` (`product_id`, `product_name`, `current_stock`, `reorder_level`, `notification`,`merchant_id`) VALUES ('$single_p_id', '$p_name', '$new_stock', '$reorder_level','$noti','$merchant_id')");
+					
+					}
+					else
+					{
+						$update=mysqli_query($conn, "UPDATE products SET pending_stock='$new_stock' WHERE id='$single_p_id'");	
+					}  
+					if($update)
+					{
+						$qu="INSERT INTO `inventory_stock` (`product_id`, `stock_count`, `stock_type`, `order_id`, `comment`,`child_id`) VALUES ('$single_p_id','$qty_s', 'out', '$order_id', 'productsell','$s_id')";
+						mysqli_query($conn,$qu);   
+					}
+				}
+				$ps++;
+			}
+		$qu="UPDATE `order_list` SET `stock_check` = 'y' where id='$s_p_id'";
+		mysqli_query($conn,$qu);   
+   }	   
+	
+}
+$sql = "SELECT count(id) as total_count FROM order_list WHERE merchant_id ='".$loginidset."'";
 $row = mysqli_fetch_assoc(mysqli_query($conn,$sql));
 $rec_limit = 25;
-$rec_count = $row['total_count'];
+ $rec_count = $row['total_count'];
+
 if( isset($_GET{'page'} ) ) {
             $page = $_GET{'page'} + 1;
             $offset = $rec_limit * $page ;
@@ -40,18 +171,33 @@ if( isset($_GET{'page'} ) ) {
          
 $left_rec = $rec_count - ($page * $rec_limit);
 /* end  for limit  */
-  $query="SELECT order_list.*, sections.name as section_name FROM order_list left join sections on order_list.section_type = sections.id WHERE merchant_id ='".$_SESSION['login']."' ORDER BY order_list.created_on DESC LIMIT $offset, $rec_limit";
+if(isset($_GET['q']) && isset($_GET['cr'])){
+    $get_query = $_GET['q'];
+    $field_raw = $_GET['cr'];
+    $fields_list = ['phone_no'      =>   'order_list.user_mobile',
+                    'prod_no'       =>   'order_list.product_code',
+                    'invoice_no'    =>   'order_list.invoice_no',
+                    'table'         =>   'order_list.table_type'
+                    ];
+    $field = $fields_list[$field_raw];
+	$query="SELECT order_list.*, sections.name as section_name FROM order_list left join sections on order_list.section_type = sections.id WHERE merchant_id ='".$loginidset."' AND $field LIKE '%$get_query%' ORDER BY order_list.created_on DESC LIMIT $offset, $rec_limit";
+}else{
+	  $query="SELECT order_list.*, sections.name as section_name FROM order_list left join sections on order_list.section_type = sections.id WHERE merchant_id ='".$loginidset."' ORDER BY order_list.created_on DESC LIMIT $offset, $rec_limit";
+}
+// echo $query;
 // die;
 $total_rows = mysqli_query($conn,$query);
 $total_rows1 = mysqli_query($conn,$query);
- $last_id = mysqli_fetch_assoc(mysqli_query($conn, "SELECT max(id) as max_id FROM order_list WHERE merchant_id ='".$_SESSION['login']."'"))['max_id'];
+ $last_id = mysqli_fetch_assoc(mysqli_query($conn, "SELECT max(id) as max_id FROM order_list WHERE merchant_id ='".$loginidset."'"))['max_id'];
 
-$merchant_name = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id ='".$_SESSION['login']."'"));
+$merchant_name = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM users WHERE id ='".$loginidset."'"));
 $pending_time = $merchant_name['pending_time'];
 $alaram_required = $merchant_name['alaram_required'];
 $sstper = $merchant_name['sst_rate'];
+if($_SESSION["langfile"]=='')
+	$_SESSION['langfile']='english';
 require_once ("languages/".$_SESSION["langfile"].".php");
- $i =1;
+ $i =1; 
 $pending_data = array();
 
 while ($row=mysqli_fetch_assoc($total_rows1)){
@@ -490,7 +636,18 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 	?>
 </head>
 <body class="header-light sidebar-dark sidebar-expand pace-done">
-   
+   <?php 
+     if($_SESSION['pos']=="y")
+		{
+		  
+			unset($_SESSION['pos']);
+			 $_SESSION['pos']="";   
+	   ?>
+	   <!--meta http-equiv="Refresh" content="3; url=<?php echo $site_url;?>/pos.php" /!-->
+	   <?php 
+		}
+		  
+   ?>
 <div id="wrapper" class="wrapper">
     <!-- HEADER & TOP NAVIGATION -->
     <?php include("includes1/navbar.php"); ?>
@@ -546,31 +703,57 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                         <h3><?php //echo $language['order_list'];?></h3>
                         <span style="cursor: pointer; color:blue;text-decoration:underline;font-size: 40px;" id="scan_order"><?php echo $language['scan_order'];?></span>
 						&nbsp;&nbsp;&nbsp;&nbsp;<span style="cursor: pointer; color:green;text-decoration:underline;font-size: 40px;" id="scan_order1">Table/combine bill</span>
-						 <?php if($alaram_required=="y"){ ?>
+						<p><a href="prepos.php" style="cursor: pointer; color:green;text-decoration:underline;font-size: 40px;margin-left:20%;">Table Based Order</a></p>
+						<?php if($alaram_required=="y"){ ?>
 						 <span class="alaram" style="display:none;">
 						 <img id="alaram_noise" src="https://i.gifer.com/McRx.gif" style="max-width:200px;"/>
 						 <button id="stop_alaram" class="btn btn-primary" style="font-size:28px;">Stop It</button>
 					     </span>  <?php } ?>
 						 
 					</div>
+					 <div class="form-group" style="margin-top: 20px;">
+						  <form id="criteria_form">
+							<div class="row">
+							  <div class="col-sm-2">
+								<select class="form-control" name="cr" id="criteria_field">
+								  <option <?php echo (!isset($_GET['cr']) || $_GET['cr'] == "invoice_no") ? "selected" : ""; ?> val="invoice_no">Invoice number</option>
+								  <option <?php echo ($_GET['cr'] == "table") ? "selected" : ""; ?> val="table">Table number</option>
+								  <option <?php echo ($_GET['cr'] == "prod_no") ? "selected" : ""; ?> val="prod_no">Product code</option>
+								  <option <?php echo ($_GET['cr'] == "phone_no") ? "selected" : ""; ?> val="phone_no">Phone number</option>
+								</select>
+							  </div>
+							  <div class="col-sm-2">
+								<input type="text" class="form-control" name="q" id="criteria_query" placeholder="Enter your criteria ...">
+							  </div>
+							</div>
+							<div class="row">
+								<div class="col-sm-1" style="margin-top:20px;max-width:150px;">
+									<button type="button" class="btn btn-secondary" id="apply_criteria">Aply criteria</button>
+							  </div>
+								<div class="col-sm-1" style="margin-top:20px">
+									<button type="button" class="btn btn-danger" onclick="window.location.href='./orderview.php'">Clear criteria</button>
+							  </div>
+							</div>
+						  </form>
+						</div>
 					
 					 
                     <?php
                     $dt = new DateTime();
                     $today =  $dt->format('Y-m-d');
                     ?>
-					<?php if($rec_count>25){ ?>    
-					<p style="">
+					<?php if($rec_count>25){ ?>        
+					<p style="" class="pagecount">   
 					 <?php
 								if( $page > 0 ) {
 									$last = $page - 2;
-									echo "<a href = \"$_PHP_SELF?page=$last\">Last 25 Records</a> |";
-									echo "<a href = \"$_PHP_SELF?page=$page\">Next 25 Records</a>";
+  									echo "<a href = \"$_PHP_SELF?" . (empty($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : $_SERVER['QUERY_STRING'] . "&") . "page=$last\">Last 25 Records</a> |";
+  									echo "<a href = \"$_PHP_SELF?" . (empty($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : $_SERVER['QUERY_STRING'] . "&") . "page=$page\">Next 25 Records</a>";
 								 }else if( $page == 0 ) {
-									echo "<a href = \"$_PHP_SELF?page=$page\">Next 25 Records</a>";
+									echo "<a href = \"$_PHP_SELF?" . (empty($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : $_SERVER['QUERY_STRING'] . "&") . "page=$page\">Next 25 Records</a>";
 								 }else if( $left_rec < $rec_limit ) {
 									$last = $page - 2;
-									echo "<a href = \"$_PHP_SELF?page=$last\">Last 25 Records</a>";
+									echo "<a href = \"$_PHP_SELF?" . (empty($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : $_SERVER['QUERY_STRING'] . "&") . "page=$last\">Last 25 Records</a>";
 								 }
 							?>
 					</p>
@@ -578,6 +761,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                     <table class="table table-striped">
                         <thead>
                         <tr>
+						    <?php if($merchant_name['spassword'] && $merchant_name['spassword_need']){ ?> <th>Action</th> <?php  } ?>
                             <th><?php echo $language["items"];?></th>
                             <th><?php echo $language["date_of_order"];?></th>
                            
@@ -587,30 +771,33 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							<th>Invoice Number</th>
                             <th>Internal Receipt</th>
 							<th>Customer receipt</th>
-                            <th><?php echo $language["chat"];?></th>
+                            <!--th><?php echo $language["chat"];?></th!-->
                             
 							 <th><?php echo $language["amount"];?></th>
+							  <th><?php echo $language["quantity"];?></th>
                             <th><?php echo $language["total"];?></th>
 							<?php if($sstper>0){ ?>
 							 <th><?php echo "SST ".$sstper." %"?></th>
 							 <!--th><?php echo "Grand Total (Inc ".$sstper." % SST)";?></th!-->
 							 <th><?php echo "Grand Total";?></th>
 							<?php } ?>
-                            
-                            <th><?php echo $language["quantity"];?></th>
+                            <th><?php echo "Paid By Wallet";?></th>
+                            <th><?php echo "Bal.  Payment";?></th>
+                           
                             <th class="product_name test_product"><?php echo $language["product_name"];?></th>
 							   <th class="product_name test_product"><?php echo "VARIENT";?></th>
                             <th class="product_name test_product"><?php echo $language["remark"];?></th>
                             <th><?php echo $language["product_code"];?></th>
-                            <th>Price</th>
+                            <!--th>Price</th!-->
 							
                             <th><?php echo $language["mode_of_payment"];?></th>
                             <th class="location_head"><?php echo $language["location"];?></th>
                             <th>Phone</th>
 							 <th>Username</th>
+							
                             <th>Delivery <br> Service</th>
                             <!-- <th><?php echo $language["print"];?></th> -->
-                            <th>K1/K2</th>
+                            <!--th>K1/K2</th!-->
 							<th>Invoice</th>
 							<th>Kitchen</th>
                         </tr>
@@ -619,8 +806,16 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                         <?php
                         $i =1;
                         while ($row=mysqli_fetch_assoc($total_rows)){
-							// print_R($row);
-							// die;
+						$wallet=$row['wallet'];
+						if($wallet=="myr_bal")
+						$wal_label="MYR WALLET";
+						else if($wallet=="inr_bal")
+						$wal_label="KOO COIN";
+						 else if($wallet=="usd_bal")
+						$wal_label="CF WALLET";
+						else if($wallet=="cash")
+						$wal_label="CASH";
+						else $wal_label=$wallet;
                         $product_ids = explode(",",$row['product_id']);
                         $quantity_ids = explode(",",$row['quantity']);
                         $amount_val = explode(",",$row['amount']);
@@ -637,6 +832,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                         
                        
                         $date=date_create($created);
+							
                         ?>
                         <?php
                         if($row['status'] == 1) $callss = "gr";
@@ -649,9 +845,14 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                             <input type="hidden" class="userphone_<?php echo $row['id'];?>" value="<?php echo $row['user_mobile'];?>" >
                             <input type="hidden" class="merchantphone_<?php echo $row['id'];?>" value="<?php echo $merchant_name['mobile_number'];?>" >
                             <input type="hidden" class="merchantaddress_<?php echo $row['id'];?>" value="<?php echo $merchant_name['google_map'];?>" >
+							<input type='hidden' id='cash_id' name='cash_id' value='<?php echo $cash_id; ?>'/>
                             <?php if($i==1){ ?>
 							<input type="hidden" value="<?php echo $last_id;?>"  id="last_id"/>
 							<?php } ?>
+							 	
+							<?php if($merchant_name['spassword'] && $merchant_name['spassword_need']){ ?>
+							<td class="table_number_<?php echo $row['id']?>"> Delete <p class="pop_upss_delete_special" data-id="<?php echo $row['id']; ?>"  style='margin-bottom: 0px;' data-prodid="<?php echo $row['id']; ?>"> <i class="fa fa-trash" aria-hidden="true"></i></p></td>
+							<?php }?>
 							<td><?php echo  $i ?></td>
                             <?php 
                               $dteDiff  = date_diff($date, date_create($current_time));
@@ -665,6 +866,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                               $diff_second = $dteDiff->s;
                               if($diff_second < 10) $diff_second = '0'.$diff_second;
                               $diff_time = $diff_day.'<br>'.$diff_hour.$diff_minute.$diff_second;
+							 
                             ?>
                             <td><?php echo date_format($date,"m/d/Y");  ?>
                                 <?php echo '<br>'; echo $new_time[1] ?>
@@ -691,6 +893,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 									$sta = "Accepted";
 									$s_color="";
 								}
+								
                                 ?>
 								<input type="button" style="background-color:<?php echo $s_color;?>" class= "status btn btn-primary" value="<?php  echo $sta;?>" status="<?php echo $row['status'];?>" data-invoce='<?php echo $row['invoice_no'];?>' data-id="<?php echo $row['id']; ?>"/>
 							   <!--label class= "status btn btn-primary" status="<?php echo $row['status'];?>" data-invoce='<?php echo $row['invoice_no'];?>' data-id="<?php echo $row['id']; ?>"> <?php echo $sta; ?></label!-->
@@ -710,12 +913,13 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							  
                             </td>
 							
-                            <td><a target="_blank" href="<?php echo $site_url; ?>/chat/chat.php?sender=<?php echo $_SESSION['login']?>&receiver=<?php echo $row['user_id'];?>"><i class="fa fa-comments-o" style="font-size:25px;"></i></a></td>
+                            <!--td>
+							<a target="_blank" href="<?php echo $site_url; ?>/chat/chat.php?sender=<?php echo $loginidset?>&receiver=<?php echo $row['user_id'];?>"><i class="fa fa-comments-o" style="font-size:25px;"></i></a></td!-->
                            
                             <td class="amount_<?php echo $row['id'];?>">
 
                                 <?php
-
+							
                                 $q_id = 0;
 
                                 foreach ($amount_val as $key => $value){
@@ -729,8 +933,8 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                     <?php  }
 
                                     if( $quantity_ids[$key] && $value ) {
-
-                                        echo @number_format($quantity_ids[$key] * $value, 2).'<br>';
+										
+                                        echo @number_format($value, 2).'<br>';
 
                                     } else {
 
@@ -743,7 +947,15 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 
                                 } ?>
 
-                            </td>  
+                            </td> 
+							<td class="quantity_<?php echo $row['id'];?>"><?php
+							
+                                foreach ($quantity_ids as $key)
+                                {  
+                                    echo $key;
+                                    echo '<br>';
+                                }
+                                ?></td>
                             <td class="total_order total_<?php echo $row['id']?>">
                                 <?php
 								
@@ -762,22 +974,19 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							<?php $incsst = ($sstper / 100) * $total;
 							    $incsst=@number_format($incsst, 2);
 								$incsst=ceiling($incsst,0.05);
+								 $incsst=@number_format($incsst, 2);
 							    $g_total=@number_format($total+$incsst, 2);
 							 ?>
 							  <td><?php echo $incsst; ?></td>
 							  <td><?php  echo $g_total;?></td>
-							<?php } ?>
-						
+							<?php } else { $g_total=$total;} ?>
+							<td><?php  echo @number_format($row['wallet_paid_amount'],2); ?></td>
+							<td><?php echo @number_format($g_total-$row['wallet_paid_amount'], 2); ?></td>
                            
-                            <td class="quantity_<?php echo $row['id'];?>"><?php
-                                foreach ($quantity_ids as $key)
-                                {  
-                                    echo $key;
-                                    echo '<br>';
-                                }
-                                ?></td>
+                          
                             <td class="products_namess product_name_<?php echo $row['id'];?> test_productss" ><?php foreach ($product_ids as $key )
                                 {
+									
                                     if(is_numeric($key))
                                     {
                                         $product = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM products WHERE id ='".$key."'"));
@@ -791,10 +1000,15 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                 ?>
                             </td>
 							<td><?php
+							 // $row['varient_type'];
+							// die;
+							 // print_R($row['varient_type']);
+							// die;
 							 if($row['varient_type'])
 							 {
-							$v_str=$row['varient_type'];
-							$v_array=explode("|",$v_str);
+						$v_str=$row['varient_type'];
+							$v_array=explode(",",$v_str);
+							  
 							foreach($v_array as $vr)
 							{
 								
@@ -802,10 +1016,12 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 								{
 									$v_match=$vr;
 									$v_match = ltrim($v_match, ',');
+									// echo "SELECT * FROM sub_products WHERE id  in ($v_match)";
+									// die;
 									$sub_rows = mysqli_query($conn, "SELECT * FROM sub_products WHERE id  in ($v_match)");
 									while ($srow=mysqli_fetch_assoc($sub_rows)){
 										echo $srow['name'];
-										echo "&nbsp;&nbsp;";
+										// echo "&nbsp;&nbsp;";
 									}
 								}
 								 else
@@ -838,27 +1054,24 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                     echo $key.'<br>'; }
                                 ?>
                             </td>
-                            <td>
-                                <?php
-                                foreach ($amount_val as $key => $value){
-                                    echo @number_format($value, 2).'<br>';
-                                }
-                                ?>
-                            </td>
+                         
                             
-                            <td><?php echo $row['wallet'];  ?></td>
-                            <td class="location_<?php echo $row['id']; ?> new_tablee"><?php echo $row['location'];?></td>
+                             <td><?php echo $wal_label;  ?></td>  
+                              <td class="location_<?php echo $row['id']; ?> new_tablee">
+							<a class="" target="_blank" href="http://maps.google.com/maps?q=<?php echo  $row['location']; ?>">  
+						
+							<?php echo $row['location'];?></a></td>
                               <td><?php echo $row['user_mobile']; ?></td>
 							   <td class="username_<?php echo $row['id'];?>"><?php echo $row['user_name']; ?></td>
                             <td><a onclick="copy_orderDetail(<?php echo $row['id']?>)" href="#" class="delivery" id="<?php echo $row['id'];?>"><i class="fa fa-truck" style="font-size:25px;"></i></a></td>
-                            <td><?php echo $row['wallet'];  ?></td>
+                            <!--td><?php echo $wal_label;  ?></td!-->   
                             <?php if($sta == "Done"){?>
-                                <td></td>
+                               
                             <?php }?>
-							 <td><a target="_blank" href="print.php?id=<?php echo $row['id'];?>&merchant=<?php echo $_SESSION['login']?>">Print</a></td>
+							 <td><a target="_blank" href="print.php?id=<?php echo $row['id'];?>&merchant=<?php echo $loginidset?>">Print</a></td>
 							  <td>
                                 <?php if($row['status'] == 2){?>
-                                    <a target="_blank" href="print_kitchen.php?id=<?php echo $row['id'];?>&merchant=<?php echo $_SESSION['login']?>">Print</a>
+                                    <a target="_blank" href="print_kitchen.php?id=<?php echo $row['id'];?>&merchant=<?php echo $loginidset?>">Print</a>
                                 <?php }?>
                             </td>
                         </tr>
@@ -902,20 +1115,20 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                     </div>
 					
 						<div>
-                        <div class="modal fade" id="myScanModal" role="dialog">
-                            <div class="modal-dialog modal-lg">
+						 <div class="modal fade" id="myScanModal" role="dialog">
+                            <div class="modal-dialog modal-lg" style="width: 1100px; max-width:1100px;">
                                 <!-- Modal content-->
                                 <div class="modal-content" style="border-radius: 4px;background-color: transparent;    padding: 0px;">
                                     <div class="modal-header" style="padding: 3px 3px 3px 16px;background-color:#99e1dc57;margin: 0px;">
                                         <button type="button" class="close" data-dismiss="modal">&times;</button>
                                         <h4 class="modal-title" style="color: #3a3939c4;">Statement</h4>
                                     </div>
-                                    <div style="background-color:#99e1dc;padding: 10px;min-height:675px;">
+                                    <div style="background-color:#99e1dc;padding: 10px;min-height:695px;">
                                         
 
                                       
                                         <div class="col-sm-12">
-                                        <div class="col-sm-8" style="float: left;">
+                                        <div class="col-sm-7" style="float: left;">
                                            <div class="inline fields">
                                             <div style="display: inline-block;height: 50px;">
                                                 <label style="display: inline-block;height: 50px;">Barcode</label>
@@ -954,6 +1167,10 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid</span>
                                                 <input type="text" id="paid2" value="0" class="amount" name="paid2" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
+											  <div style="padding-top: 5px;    display: flex;">
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid By Koocoin</span>
+		<input type="text" id="paidkoocoin" value="0" class="amount" readonly name="paidkoocoin" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
+                                            </div>
                                             <div style="padding-top: 5px;    display: flex;">
                                                 <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Change</span>
                                                 <input type="text" id="change2" name="change" class="amount" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%; border: 1px solid #555555;padding-left: 4px;">
@@ -965,11 +1182,13 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             </div!-->
                                             <div class="modal-footer" style="padding-bottom:2px; border-top: none;padding: 0px;padding-top: 5px;">
                                                 <!--button style="width:200px;height:50px;background-color: #99e1dc;">Submit</button!-->
-												 <button id="amount_submit_button" style="width:200px;height:50px;background-color: #99e1dc;">Submit</button>
+												 <button id="amount_submit_button" class="<?php echo $p_class; ?>" style="width:261px;height:65px;background-color: #99e1dc;float: left;">Submit</button>
+												 <a  style="color:white;font-size:20px;width: 306px;height: 65px;float: left;" class="btn btn-primary status_ewallet">E-wallet</a>
+											 
                                             </div>
                                         </form>
                                         </div>
-                                        <div  class="col-sm-4" style="float: left;">
+                                        <div  class="col-sm-5" style="float: left;">
 
                                                 <form id="scan" style="">
                                             <table style="width: 100%;">
@@ -980,35 +1199,56 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 </thead>
                                                
                                             </table>
+                                            <style>
+                                                .jin_calculator {
+                                                    width: 20em;
+                                                    padding-top: 1em;
+                                                }
+
+                                                .jin_button {
+                                                    width: 4em;
+                                                    height: 4em;
+                                                    margin-top: 0;
+                                                    margin-bottom: 1em;
+                                                }
+
+                                                .jin_viewer {
+                                                    width: 13.5em;
+                                                    height: 4em;
+                                                    margin-top: 0;
+                                                    margin-bottom: 1em;
+                                                    line-height: 4em;
+                                                }
+                                            </style>
                                             <div class="modal-body" style="padding-bottom:0;padding: 0; overflow: auto;background-color: white;">
                                                 <table style="width: 100%;border-style: outset;border-color: #f1f1f1ab;border-width: thin;">
                                                     <tbody style="width: 100%;">
 
-                                            <div id="calculator2" class="calculator">
+                                            <div id="calculator2" class="calculator jin_calculator">
 
-                                              <input type="button" id="clear2" class="clear button" value="C">
+                                              <input type="button" id="clear2" class="clear button jin_button" value="C">
 
-                                              <div id="viewer2" class="viewer">0</div>
+                                              <div id="viewer2" class="viewer jin_viewer">0</div>
 
-                                              <input type="button" class=" num2 button" data-num="7" value="7" id="7" >
-                                              <input type="button" class="num2 button" data-num="8" value="8" id="8" >
-                                              <input type="button" class="num2 button" data-num="9" value="9" id="9">
-                                              <input  type="button" data-ops="plus" class="ops2 button" value="+">
+                                              <input type="button" class=" num2 button jin_button" data-num="7" value="7" id="7" >
+                                              <input type="button" class="num2 button jin_button" data-num="8" value="8" id="8" >
+                                              <input type="button" class="num2 button jin_button" data-num="9" value="9" id="9">
+                                              <input  type="button" data-ops="plus" class="ops2 button jin_button" value="+">
 
-                                              <input type="button" class=" num2 button" data-num="4" value="4" id="4">
-                                              <input type="button" class="num2 button" data-num="5" value="5" id="5">
-                                              <input type="button" class="num2 button" data-num="6" value="6" id="6">
-                                              <input type="button" data-ops="minus" class="ops2 button" value="-">
+                                              <input type="button" class=" num2 button jin_button" data-num="4" value="4" id="4">
+                                              <input type="button" class="num2 button jin_button" data-num="5" value="5" id="5">
+                                              <input type="button" class="num2 button jin_button" data-num="6" value="6" id="6">
+                                              <input type="button" data-ops="minus" class="ops2 button jin_button" value="-">
 
-                                              <input type="button" class="num2 button" data-num="1" value="1" id="1" >
-                                              <input type="button" class="num2 button" data-num="2" value="2" id="2">
-                                              <input type="button" class="num2 button" data-num="3" value="3" id="3" >
-                                              <input type="button" data-ops="times" class="ops2 button" value="*">
+                                              <input type="button" class="num2 button jin_button" data-num="1" value="1" id="1" >
+                                              <input type="button" class="num2 button jin_button" data-num="2" value="2" id="2">
+                                              <input type="button" class="num2 button jin_button" data-num="3" value="3" id="3" >
+                                              <input type="button" data-ops="times" class="ops2 button jin_button" value="*">
 
-                                              <input type="button" class="num2 button" data-num="0" value="0" id="0" >
-                                              <input type="button" class="num2 button" data-num="." value="." id="." >
-                                              <input type="button" id="equals2" class="equals2 button" data-result="" value="=">
-                                              <input type="button" data-ops="divided by" class="ops2 button" value="/">
+                                              <input type="button" class="num2 button jin_button" data-num="0" value="0" id="0" >
+                                              <input type="button" class="num2 button jin_button" data-num="." value="." id="." >
+                                              <input type="button" id="equals2" class="equals2 button jin_button" data-result="" value="=">
+                                              <input type="button" data-ops="divided by" class="ops2 button jin_button" value="/">
                                             </div>
                                         
                                                     </tbody>
@@ -1024,12 +1264,14 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                 </div>
                             </div>
                             </div>
+					   
+
                         </div>
                        
 						 <!---amit code --->
 
-                          <div class="modal fade" id="myScanModal1" role="dialog">
-                             <div class="modal-dialog modal-lg">
+                           <div class="modal fade" id="myScanModal1" role="dialog">
+                             <div class="modal-dialog modal-lg" style="width:1100px; max-width:1100px;">
                                 <!-- Modal content-->
                                 <div class="modal-content" style="border-radius: 4px;background-color: transparent;    padding: 0px;">
                                     <div class="modal-header" style="padding: 3px 3px 3px 16px;background-color:#296ca0;margin: 0px;">
@@ -1042,7 +1284,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                         <div class="inline fields">
                                             <div style="display: inline-block;">
                                                 <label  style="display: inline-block;">Merchant ID :</label> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                                                <input type="text" name="merchantid"  autofocus style="display: inline-block; height: 35px;" value="<?php echo $_SESSION['login']  ; ?>" readonly>
+                                                <input type="text" name="merchantid"  autofocus style="display: inline-block; height: 35px;" value="<?php echo $loginidset  ; ?>" readonly>
                                                 <button style="display: none; width: 100px; background-color: red;" id="">Merchant ID</button>
                                             </div>
                                             <div style="display: inline-block;margin-left: 8%;">
@@ -1068,14 +1310,14 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             </div>
                                         </div>
                                         <div class="col-sm-12">
-                                        <div class="col-sm-8" style="float: left;">
+                                        <div class="col-sm-7" style="float: left;">
                                             <form id="form" style="" method="POST" action="statement.php">
                                              <?php
                                                $pin = mt_rand(1000, 9999);
                                              ?>
                                               
                                            <input type="hidden" name="statementid" id="statementid" value="<?php echo $pin ;?>">
-                                           <input type="hidden" name="merchant_ses" id="merchant_ses" value="<?php echo $_SESSION['login'];?>">
+                                           <input type="hidden" name="merchant_ses" id="merchant_ses" value="<?php echo $loginidset;?>">
                                             <table style="width: 100%;" id="mytbl">
                                                 <thead>
                                                 <thead style="background-color: #e8dfdf;">
@@ -1117,11 +1359,13 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 <button type="button" style="width:200px;height:50px;background-color: #99e1dc;" data-dismiss="modal">Close</button>
                                                <input type="submit" style="width:200px;height:50px;background-color: #99e1dc;" value="Print" onclick="this.form.target='_blank';return true;">
                                             
-                                                <input type="button" style="width:200px;height:50px;background-color: #99e1dc;"  value="Submit" onclick="myFunction()">
-                                            </div>
+                                                <input type="button" style="width:200px;height:50px;background-color: #99e1dc;"  value="Submit" class="<?php echo $p_class; ?>" <?php if($p_class==''){?> onclick="myFunction()" <?php } ?>>
+												<a style="color:white;font-size:20px;" class="status_ewallet btn btn-primary">E-wallet</a>
+											 
+											</div>
                                         </form>
                                         </div>
-                                        <div  class="col-sm-4" style="float: left;">
+                                        <div  class="col-sm-5" style="float: left;">
 
                                                 <form id="scan1" style="">
                                             <table style="width: 100%;">
@@ -1136,31 +1380,31 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 <table style="width: 100%;border-style: outset;border-color: #f1f1f1ab;border-width: thin;">
                                                     <tbody style="width: 100%;">
 
-                                            <div id="calculator" class="calculator">
+                                            <div id="calculator" class="calculator jin_calculator">
 
-                                              <input type="button" id="clear" class="clear button" value="C">
+                                              <input type="button" id="clear" class="clear button jin_button" value="C">
 
-                                              <div id="viewer" class="viewer">0</div>
+                                              <div id="viewer" class="viewer jin_viewer">0</div>
 
-                                              <input type="button" class=" num button" data-num="7" value="7" id="7" >
-                                              <input type="button" class="num button" data-num="8" value="8" id="8" >
-                                              <input type="button" class="num button" data-num="9" value="9" id="9">
-                                              <input  type="button" data-ops="plus" class="ops button" value="+">
+                                              <input type="button" class=" num button jin_button" data-num="7" value="7" id="7" >
+                                              <input type="button" class="num button jin_button" data-num="8" value="8" id="8" >
+                                              <input type="button" class="num button jin_button" data-num="9" value="9" id="9">
+                                              <input  type="button" data-ops="plus" class="ops button jin_button" value="+">
 
-                                              <input type="button" class=" num button" data-num="4" value="4" id="4">
-                                              <input type="button" class="num button" data-num="5" value="5" id="5">
-                                              <input type="button" class="num button" data-num="6" value="6" id="6">
-                                              <input type="button" data-ops="minus" class="ops button" value="-">
+                                              <input type="button" class=" num button jin_button" data-num="4" value="4" id="4">
+                                              <input type="button" class="num button jin_button" data-num="5" value="5" id="5">
+                                              <input type="button" class="num button jin_button" data-num="6" value="6" id="6">
+                                              <input type="button" data-ops="minus" class="ops button jin_button" value="-">
 
-                                              <input type="button" class="num button" data-num="1" value="1" id="1" >
-                                              <input type="button" class="num button" data-num="2" value="2" id="2">
-                                              <input type="button" class="num button" data-num="3" value="3" id="3" >
-                                              <input type="button" data-ops="times" class="ops button" value="*">
+                                              <input type="button" class="num button jin_button" data-num="1" value="1" id="1" >
+                                              <input type="button" class="num button jin_button" data-num="2" value="2" id="2">
+                                              <input type="button" class="num button jin_button" data-num="3" value="3" id="3" >
+                                              <input type="button" data-ops="times" class="ops button jin_button" value="*">
 
-                                              <input type="button" class="num button" data-num="0" value="0" id="0" >
-                                              <input type="button" class="num button" data-num="." value="." id="." >
-                                              <input type="button" id="equals" class="equals button" data-result="" value="=">
-                                              <input type="button" data-ops="divided by" class="ops button" value="/">
+                                              <input type="button" class="num button jin_button" data-num="0" value="0" id="0" >
+                                              <input type="button" class="num button jin_button" data-num="." value="." id="." >
+                                              <input type="button" id="equals" class="equals button jin_button" data-result="" value="=">
+                                              <input type="button" data-ops="divided by" class="ops button jin_button" value="/">
                                             </div>
                                         
                                                     </tbody>
@@ -1190,11 +1434,11 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             <div class="col-sm-12">
                                                 <div class="form-group" id="invoice_list">
 												<?php
-													$Merchantid = $_SESSION['login'];
+													$Merchantid = $loginidset;
 
 
 
-													$sql = "select * from order_list where status in(0,2) and merchant_id='$Merchantid' group by invoice_no limit 0,30";
+													$sql = "select * from order_list where status in(0,2) and merchant_id='$Merchantid' group by invoice_no limit 0,100";
 
 													$rel = mysqli_query($conn, $sql);
 
@@ -1225,6 +1469,57 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                 </div>
                             </div>
                         </div>  
+						<div class="modal fade" id="deletemodel" role="dialog">						
+						<div class="modal-dialog">
+						<!-- Modal content-->		
+						<div class="modal-content">	
+						<div class="modal-header">	
+						<button type="button" class="close" data-dismiss="modal">&times;</button>						
+						<h4 class="modal-title">Delete record</h4>	
+						</div>					
+						<form id ="data_spcialpassword">		
+						<div class="modal-body" style="padding-bottom:0px;">
+						<div class="col-sm-10">						
+						<div class="form-group">				
+						<label>enter special password</label>					
+						<input type="password" name="spassword" id = "spassword" class="form-control" value="" required>						
+						<input type="hidden" id="idspecialpass" name="idspecialpass" value="">	
+						</div>						
+						</div>						
+						</div>						
+						<div class="modal-footer" style="padding-bottom:2px;">
+						<button>Submit</button>					
+						</div>						
+						</form>						
+						</div>						
+						</div>						
+						</div>
+						<div class="modal fade" id="deleteprocessmodel" role="dialog">						
+						<div class="modal-dialog">
+						<!-- Modal content-->		
+						<div class="modal-content">	
+						<div class="modal-header">	
+						<button type="button" class="close" data-dismiss="modal">&times;</button>						
+						<h4 class="modal-title">Process Order</h4>	
+						</div>					
+						<form id ="data_processpassword">		
+						<div class="modal-body" style="padding-bottom:0px;">
+						<div class="col-sm-10">						
+						<div class="form-group">				
+						<label>Enter process password</label>					
+						<input type="password" name="process_password" id = "process_password" class="form-control" value="" required>						
+						<input type="hidden" id = "scan_type" class="form-control">						
+						<input type="hidden" id="idprocesspass" name="idprocesspass" value="">	
+						</div>						
+						</div>						
+						</div>						
+						<div class="modal-footer" style="padding-bottom:2px;">
+						<button>Submit</button>					
+						</div>						
+						</form>						
+						</div>						
+						</div>						
+						</div>
 						 <div class="modal fade" id="myModalt" role="dialog" >
                             <div class="modal-dialog modal-lg">
                                 
@@ -1239,7 +1534,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                             <div class="col-sm-12">
                                                 <div class="form-group" id="table_list">
 												<?php
-												   $Merchantid = $_SESSION['login'];
+												   $Merchantid = $loginidset;
 
         
 
@@ -1354,14 +1649,19 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid</span>
                                                 <input type="text" id="paid3" value="0" class="amount" name="paid" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
+											 <!--div style="padding-top: 5px;    display: flex;">
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Paid By Koocoin</span>
+                                                <input type="text" id="paidkoocoin3" value="0" class="amount" name="paidkoocoin3" style="background-color:#6dafe2; font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
+                                            </div!-->
 											
                                             <div style="padding-top: 5px;font-weight:bold;display: flex;">
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid;border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Change</span>
                                                 <input type="text" id="change3" name="change" class="amount" style=" font-size: 20px; width: 37%;margin-left: 23%; border: 1px solid #555555;padding-left: 4px;">
                                             </div>
 											<br>
-											<input type="submit" class="btn btn-primary btn-md waves-effect waves-light" value="Submit">
-                                           
+											<input type="submit" class="btn btn-primary btn-md waves-effect waves-light <?php if($process_password_need){ echo "process_password_need";}?>" value="Submit">
+                                            <!--a  style="color:white;" class="btn btn-primary status_ewallet">E-wallet</a!-->
+											 
 			  </div>
 			  <div class="col-md-6">
 			    <div class="" style="float: left;">
@@ -1448,14 +1748,102 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 	
 	   }
 	</style>
+	<div id="ShiftModel" class="modal fade" role="dialog">
+				  			<div class="modal-dialog">
+
+							    <!-- Modal content-->
+							    <div class="modal-content">
+									   
+											<div class="modal-header">
+												<button type="button" class="close" id='sectionclose' data-dismiss="modal">&times;</button>
+												   Set Opening Balance to Start
+											</div>
+											 <div class="modal-body" style="padding-bottom:0px;">
+											   <div class=" col-md-6 form-group">
+													<label>Opening Balance :</label>
+													<input type="Number" class="form-control" id='opening_balance' name="opening_balance" value="" placeholder="Opening Balance" required>  
+												 <input type="hidden" name="merchant_id" id="merchant_id" value="<?php echo $loginidset;?>">
+												 </br>
+												 <button type="submit" class="btn btn-primary start_show">Start</button>
+												
+												</div>
+												
+											 </div>
+										
+										
+									
+					    		</div>
+
+				  			</div>
+	</div>
 </div>
 <!-- /.widget-bg -->
 <!-- /.content-wrapper -->
 <?php include("includes1/footer.php"); ?>
+	<div class="modal fade" id="LesaaAmountModel" role="dialog" style="z-index:999999;margin-top:3%;">
+                    <div class="modal-dialog">
+                      <div class="modal-content" id="modalcontent">
+					   <div class="modal-header">
+        
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+     
+                          <div class="modal-body">
+                              <h2 style="font-size:24px;">Your current balance is <span id="pending_label"></span> </h2>
+							   <button class="btn btn-large btn-primary insufficient_close">ok</button>
+                          </div>
+                      
+                      </div>
+                    </div>
+    </div>
+<div id="WalletModel" class="modal fade" role="dialog">
+				  			<div class="modal-dialog">
+
+							    <!-- Modal content-->
+							    <div class="modal-content">
+								
+					      			<div class="modal-header">
+					        			<h2>Total Amount has to pay RM<span id="total_wallet_amount"></span></h2>
+										  <button type="button" class="close"  data-dismiss="modal">&times;</button>
+					      				
+					      			</div>
+				      				<div class="modal-body" style="text-align: left;">
+				      					<div class="credentials-container">
+    
+											<h5>Enter your phone number</h5>
+											<div>
+											  <div class="input-group mb-2" style="margin-bottom:0px !important;">
+												<div class="input-group-prepend">
+												  <div class="input-group-text" style="background-color:#51D2B7;border-radius: 5px 0 0 5px;height: 100%;padding: 0 10px;display: grid;align-content: center;">+60</div>
+												</div>
+												<input type="hidden" id="paid_wallet_amount"/>
+												<input type="hidden" id="selected_invoice_id"/>
+											
+												<input type="hidden"  value="<?php echo $loginidset; ?>" id="wallet_merchant_id"/>
+											
+												<input type="number" autocomplete="tel" maxlength='10' id="mobile_number"   class="mobile_number form-control" style="min-width:250px;"  placeholder="123115670" name="mobile_number" required="" />
+												 <input type="submit" mode="confirm" id="confirm_payment" class="btn btn-primary" value="Confirm"/>
+											</div>
+										
+											  
+										   </div>
+										  
+										</div>
+						
+					      			</div>
+					      			
+					      
+					    		</div>
+
+				  			</div>
+						</div>
+						
 </body>
 </html>
 <script type="text/javascript">
-     var merchant_id = '<?php echo $_SESSION['login'];?>';
+     var merchant_id = '<?php echo $loginidset;?>';
     var site_url = '<?php echo $site_url;?>';
 	//mycode
 
@@ -1514,6 +1902,7 @@ var qtyno = $("input[name='qtyno[]']")
          // return false;
          // }
 }
+
 
 
 function myFunction() {
@@ -1626,9 +2015,16 @@ var qtyno = $("input[name='qtyno[]']")
                        
 					
                         content += "<td>"+data[i]['quantity_val']+"</td>";
+						// alert(data[i]['sstper']);
+						
                         content += "<td>"+data[i]['total_val']+"</td>";
                         
-                        
+                        if(data[i]['sstper']>0)
+						{
+						   content += "<td>"+data[i]['incsst']+"</td>";
+                           content += "<td>"+data[i]['g_total']+"</td>";
+                        	
+						}
                         content += "<td class='quantity_"+data[i]['id']+"'>"+data[i]['quantities']+"</td>";
                         content += "<td class='products_namess product_name_"+data[i]['id']+" test_productss'>"+data[i]['product_name']+"</td>";
                          content += "<td>"+data[i]['varient_type']+"</td>";
@@ -1695,6 +2091,55 @@ var qtyno = $("input[name='qtyno[]']")
         return (' ' + element.className + ' ').indexOf(' ' + className + ' ') > -1;
     }
     $(document).ready(function(){
+		 var cash_match='<?php echo $cash_match;?>';
+		var cash_id=$('#cash_id').val();
+		// alert(cash_id);
+		if(cash_match=="y")
+		$('#ShiftModel').modal('show');
+		$('.start_show').click(function() {
+		var opening_balance=$('#opening_balance').val();
+		
+		// var user_id=$('#merchant_id').val();
+		var user_id="<?php echo $loginidset; ?>";
+		
+		if(opening_balance)
+		{
+			var data = {user_id:user_id,opening_balance:opening_balance,method:"startcash",cash_id:cash_id};
+			$.ajax({
+				  
+				  url :'functions.php',
+				  type:'POST',
+				  dataType : 'json',
+				  data:data,
+				  success:function(response){
+					  var data = JSON.parse(JSON.stringify(response));
+					  if(data.status==true)
+					  {
+						location.reload();  
+					  }
+					  else
+					  {
+						  alert('Failed to start cash system');
+					  }
+					 
+					}		  
+			  });
+		}
+		else
+		{
+			alert('Opening Balance is Required To start');
+		}
+	});
+		$("#apply_criteria").on("click", function(e){
+			e.preventDefault();
+			var criteria = $("#criteria_field").find("option:selected").attr("val");
+			var query = $("#criteria_query").val();
+			window.location.href = "./orderview.php?cr=" + criteria + "&q=" + query;
+		  });
+		  $("#criteria_form").on("submit", function(e){
+			e.preventDefault();
+			$(this).find("button#apply_criteria").trigger("click");
+		  });
 		var alaram_required='<?php echo $alaram_required; ?>';
 		if(alaram_required=="y")
 		{
@@ -1726,7 +2171,7 @@ var qtyno = $("input[name='qtyno[]']")
 		var last_id = $('#last_id').val();
 		var site_url = '<?php echo $site_url;?>';
 		// alert(last_id);
-		var merchant_id="<?php echo $_SESSION['login']; ?>";
+		var merchant_id="<?php echo $loginidset; ?>";
         var data = {last_id:last_id, method: "neworder",merchant_id:merchant_id};
         $.ajax( {
             url : "functions.php",
@@ -1777,6 +2222,79 @@ var qtyno = $("input[name='qtyno[]']")
 		$("#pending_close").click(function() {
 			$('.fixside').hide();
 		});
+		$("form#data_processpassword").submit(function(e) {
+			 e.preventDefault();
+			 var formData = new FormData(this);
+			var process_password=$('#process_password').val();
+			var scan_type=$('#scan_type').val();
+			var dbpass="<?php echo $merchant_name['fund_password'];?>";
+			if(dbpass==process_password)
+			{
+				var data = {process_password: $("#process_password").val(),idprocesspass: $("#idprocesspass").val()};
+				if(scan_type=="mass")
+					 $( "#scan").submit();
+				
+				else if(scan_type=="invo")
+				myFunction();
+			  else if(scan_type=="normal")
+			  {
+				  var yourArray = [];
+				  $('.past_invoice').each(function() {
+					   e.preventDefault();   
+					   var data_id = $(this).attr("data_id");
+					    yourArray.push(data_id);
+					   // alert(data_id);
+				  });
+				   $.ajax({
+								url : 'update_status.php',    
+								type: 'POST',
+								data: {bulk_invoice_id:yourArray, status: 1},
+								success:function(data){
+									//~ alert(1);
+									location.reload();
+								}
+							});
+				  
+			  }
+				 // alert('2'); 
+			}
+			else
+			{
+				alert('Wrong Process Password,Try again');
+			}
+		});	
+		$("form#data_spcialpassword").submit(function(e) {
+			 e.preventDefault();
+			 var formData = new FormData(this);
+			var spassword=$('#spassword').val();
+			var dbpass="<?php echo $merchant_name['spassword'];?>";
+			if(dbpass==spassword)
+			{
+			 var data = {spassword: $("#spassword").val(),idspecialpass: $("#idspecialpass").val()};
+			 //alert('asdas') ;
+			 $.ajax({
+                url: 'delete_record_special.php',
+                type: 'post',
+                data: $(this).serialize(),
+                success: function (data) {
+                    // console.log(data ? "true" : "false");
+					   if(data == 1){
+                        $("#deletemodel").modal("hide");
+                        // reloadData(merchant_id,site_url);
+						location.reload();
+                    }else{
+                        alert("An error occured, try again later");
+                        console.log(data);
+                    }
+                    
+                }
+            });
+			}
+			else
+			{
+				alert('Wrong Special Password,Try again');
+			}
+		});	
         $("#add_invoice").click(function() {
             if( hasClass( document.getElementById("myScanModal"), "show" ) ) {
                 var barcodeRead = $("#barcode").val();
@@ -1812,13 +2330,73 @@ var qtyno = $("input[name='qtyno[]']")
 			<!--  start of amit code !-->
 		
 		 $("#scan_order1").click(function() {
-             
+			 $('#selected_invoice_id').val('');
+			  $('#scan_type').val('invo');        
+             // $("#selected_invoice_id").val();
             $("#myScanModal1").modal("show");
             $("#total_qty1").text('');
+			
             $("#scanned_data1").html('');
             $("#total_amount1").text('');
 		
         });
+		$(".status_ewallet").click(function() {
+			// alert(3);
+			 // $("#WalletModel").show();
+				
+			
+			var paid_wallet_amount=$("#paid_wallet_amount").val();
+			// alert(paid_wallet_amount);
+			// show_total = paid_wallet_amount.toFixed(2);
+			 $('#total_wallet_amount').html(paid_wallet_amount);
+			
+			 $('#WalletModel').modal('show');
+		}); 
+			$("#confirm_payment").click(function() {
+			var mobile_num=$('#mobile_number').val();
+			var wallet_merchant_id=$('#wallet_merchant_id').val();
+			var paid_wallet_amount=$("#paid_wallet_amount").val();
+			// alert(paid_wallet_amount);
+			var selected_invoice_id=$("#selected_invoice_id").val();
+			
+			if(mobile_num)
+			{
+				  $(this).attr("disabled", "disabled");
+				$.ajax({
+					  type: "POST",    
+					  url: "functions.php",
+					  data: {mobile_num:mobile_num,method:"deductfund",merchant_id:wallet_merchant_id,paid_wallet_amount:paid_wallet_amount,selected_invoice_id:selected_invoice_id},
+					  cache: false,
+					  success: function(data) {
+						   var obj = JSON.parse( data );
+						   if(obj.status==true)
+						   {
+							   var pending_bal=obj.pending_bal;
+							   // alert(pending_bal);
+							   $('#pending_label').html(pending_bal);
+							   $('#LesaaAmountModel').modal('show');
+							   $("#selected_invoice_id").val();
+							    
+							   setTimeout(function() { 
+								  location.reload();
+							   }, 5000);
+							     
+							    
+								
+						   }
+						   else
+						   {
+							   var type=obj.type;
+							   if(type=="lessbal")
+							   {
+								alert(obj.msg);
+							   }
+						   }
+					  // alert(data);
+					  }
+				});
+						}
+		});
 		 $("#invoice").click(function(){
 
                  $("#InvoiceModel").show();
@@ -1918,10 +2496,13 @@ var qtyno = $("input[name='qtyno[]']")
                                         total += amount;
                                         totalQty += parseInt(order['product_qty'][i]);
                                         qtyOfInvoice += parseInt(order['product_qty'][i]);
+										
                                     }
                                     var total_amount =  empty($("#total_amount1").text()) ? 0 : parseFloat($("#total_amount1").text());
-                                    total_amount += total;
+                                    // total_amount += total;
+									// alert(total_amount);
                                     total = total.toFixed(2);
+									 $("#paid_wallet_amount").val(total_amount.toFixed(2));
                                     $("#total_amount1").text(total_amount.toFixed(2));
                                     var total_qty =  empty($("#total_qty1").text()) ? 0 : parseInt($("#total_qty1").text());
                                     total_qty += qtyOfInvoice;
@@ -1982,11 +2563,12 @@ var qtyno = $("input[name='qtyno[]']")
                     // alert(2);
                        var mb = $('#viewer2').text();
 					  // alert(mb);
+					  
                      $('#paid2').val(mb);
                    
                      var tol = document.getElementById("total_amount").innerText;
-               
-                      var final = parseFloat(tol)-parseFloat(mb);
+					var paidkoocoin=$('#paidkoocoin').val();
+                       var final = parseFloat(tol)-(parseFloat(mb)+parseFloat(paidkoocoin));
                       var value = Math.abs(final);
                       var v = value.toFixed(2);
                       $('#change2').val(v);
@@ -2026,6 +2608,18 @@ var qtyno = $("input[name='qtyno[]']")
 						  // e.preventDefault();
 						     e.preventDefault();   
                          var tbl = $(this).attr("data-table");
+                         var data_id = $(this).attr("data-id");
+						 var selected_invoice_id=$('#selected_invoice_id').val();
+							if(selected_invoice_id)
+							{
+								var new_in_id=selected_invoice_id+","+data_id;
+							}
+							else
+							{
+								var new_in_id=data_id;
+							}
+							
+							$('#selected_invoice_id').val(new_in_id);
                        // alert(tbl);
 					var invo = $(this).attr("data-invoce");
 					// alert(invo);
@@ -2102,10 +2696,13 @@ var qtyno = $("input[name='qtyno[]']")
                                         total += amount;
                                         totalQty += parseInt(order['product_qty'][i]);
                                         qtyOfInvoice += parseInt(order['product_qty'][i]);
+										
                                     }
                                     var total_amount =  empty($("#total_amount1").text()) ? 0 : parseFloat($("#total_amount1").text());
                                     total_amount += total;
                                     total = total.toFixed(2);
+									// alert(total_amount);
+									 $("#paid_wallet_amount").val(total_amount.toFixed(2));
                                     $("#total_amount1").text(total_amount.toFixed(2));
 									var paid=$("#paid").val();
 									// alert(paid);
@@ -2155,14 +2752,47 @@ var qtyno = $("input[name='qtyno[]']")
 
 
                     });
-					 $('body').on("click", "input[name=invo]",function(e){
+		// process password 
+	    $("body").on('click','.process_password_need',function(){          
+		$("#deleteprocessmodel").modal("show");     
+			$('#scan_type').val('normal');
+		
+		return false;		
+		});
+		$("body").on('click','.process_upss_delete_special',function(){          
+		$("#deleteprocessmodel").modal("show");        
+		var dataid=$(this).data("id"); 	
+		//var prodid=$(this).data("prodid");   
+		$("#tbl").val("");          
+		$("#idprocesspass").val(dataid); 
+		return false;		
+		});
+		$("body").on('click','.pop_upss_delete_special',function(){          
+		$("#deletemodel").modal("show");        
+		var dataid=$(this).data("id"); 	
+		//var prodid=$(this).data("prodid");   
+		$("#tbl").val("");          
+		$("#idspecialpass").val(dataid);             
+		});
+		$('body').on("click", "input[name=invo]",function(e){
 						 e.preventDefault();
-              var invo = $(this).attr("value");
-                   $(this).attr("disabled", "disabled");
-              $('#invoice_num').val(invo);
-              var invoice_num = $(".invoice_num").val();
-              var table_num = $(".table_num").val();
-
+							var data_id = $(this).attr("data-id");
+							var invo = $(this).attr("value");
+							$(this).attr("disabled", "disabled");
+							$('#invoice_num').val(invo);
+							var invoice_num = $(".invoice_num").val();
+							var table_num = $(".table_num").val();
+							var selected_invoice_id=$('#selected_invoice_id').val();
+							if(selected_invoice_id)
+							{
+								var new_in_id=selected_invoice_id+","+data_id;
+							}
+							else
+							{
+								var new_in_id=data_id;
+							}
+							
+							$('#selected_invoice_id').val(new_in_id);
                  $.ajax({
                         type: "POST",
                         url: "fetch.php",
@@ -2222,10 +2852,15 @@ var qtyno = $("input[name='qtyno[]']")
                                         total += amount;
                                         totalQty += parseInt(order['product_qty'][i]);
                                         qtyOfInvoice += parseInt(order['product_qty'][i]);
+										
+										
+										
                                     }
                                     var total_amount =  empty($("#total_amount1").text()) ? 0 : parseFloat($("#total_amount1").text());
                                     total_amount += total;
                                     total = total.toFixed(2);
+									// alert(total_amount);
+									$("#paid_wallet_amount").val(total_amount.toFixed(2));
                                     $("#total_amount1").text(total_amount.toFixed(2));
 									var paid=$("#paid").val();
 									// alert(paid);
@@ -2300,6 +2935,17 @@ var qtyno = $("input[name='qtyno[]']")
                         type: 'POST',
                         data: { id : id, invoice_no : invoice_id, method: 'getOrderDetailByIdAndInvoice'},
                           success:function(data){
+							 var selected_invoice_id=$('#selected_invoice_id').val();
+							if(selected_invoice_id)
+							{
+								var new_in_id=selected_invoice_id+","+id;
+							}
+							else
+							{
+								var new_in_id=id;
+							}
+							// alert(new_in_id);
+							$('#selected_invoice_id').val(new_in_id);
                             if( data != null ) {
                                 var obj = JSON.parse( data );
                                 if( obj.length > 0 ) {
@@ -2325,20 +2971,40 @@ var qtyno = $("input[name='qtyno[]']")
                                     }
 									var amount=order['final_amount'];
 									var final_amount=order['final_amount'];
+									var wallet_paid_amount=order['wallet_paid_amount'];
                                     var total_amount =  empty($("#total_amount").text()) ? 0 : parseFloat($("#total_amount").text());
 									// alert(total_amount);
 									amount=parseFloat(amount);
+									 // amount = amount.toFixed(2);
+									 // alert(final_amount);
+									 final_amount = parseFloat(final_amount).toFixed(2);
+									 // alert(final_amount);
                                     total_amount += amount;
 									
                                     total = total.toFixed(2);
+                                    
                                     $("#total_amount").text(total_amount.toFixed(2));
 									var paid2=$("#paid2").val();
+									var paidkoocoin=$("#paidkoocoin").val();
 									// alert(paid2);
+									
+									// alert(wallet_paid_amount);
+									// alert(paidkoocoin);
+									if(wallet_paid_amount>0)
+									{
+										var paidkoocoin=parseFloat(wallet_paid_amount)+parseFloat(paidkoocoin);
+										$('#paidkoocoin').val(paidkoocoin);
+									}
+									$("#paid_wallet_amount").val(total_amount.toFixed(2));
 									if(paid2 >0)
 									{
-										var pending= paid2-(total_amount.toFixed(2));
+										// alert(parseFloat(paid2)+parseFloat(paidkoocoin));
+										var pending= (parseFloat(total_amount))-(parseFloat(paid2)+parseFloat(paidkoocoin));
+										var pending=pending.toFixed(2);
+										// alert(pending);
 										$("#change2").val(pending);
-									}   
+											$("#paid_wallet_amount").val(pending);
+									} 
                                     var total_qty =  empty($("#total_qty").text()) ? 0 : parseInt($("#total_qty").text());
                                     total_qty += qtyOfInvoice;
                                     $("#total_qty").text(parseInt(total_qty));
@@ -2426,9 +3092,15 @@ var qtyno = $("input[name='qtyno[]']")
         $('#myScanModal').on('shown.bs.modal', function () {
             $('#barcode').focus();
         });
-        $("#scan_order").click(function() {           
+		 $('#WalletModel').on('shown.bs.modal', function () {
+            $('#mobile_number').focus();
+        });
+		
+        $("#scan_order").click(function() {   
+            $('#scan_type').val('mass');        
 			$("#change2").val();
 			$("#paid2").val();
+			$("#selected_invoice_id").val('');
             $("#myScanModal").modal("show");
             $("#total_qty").text('');
             $("#scanned_data").html('');
@@ -2440,7 +3112,10 @@ var qtyno = $("input[name='qtyno[]']")
         $(".well").on('click','.print-order', function(e) {
             e.preventDefault();
             var id = $(this).attr("data-id");
-			alert('called');
+			// alert('called');
+			var r = confirm("Want to Make Internal Receipt ??");
+			 if (r == true) {
+
             $.ajax({
                 url : 'functions.php',
                 type: 'POST',
@@ -2468,7 +3143,7 @@ var qtyno = $("input[name='qtyno[]']")
                                     if( ! data || data.indexOf('print_setting_error') > -1 ) {
                                         alert("You need to set print ip address in profile page.");
                                     }
-                                    alert(data);
+                                    // alert(data);
 									alert("Your order has been printed.");
 									 location.reload(); 
                                 },
@@ -2480,12 +3155,15 @@ var qtyno = $("input[name='qtyno[]']")
                     }
                 }
             });
+			 }
         });
 		  $(".well").on('click','.normal_print', function(e) {
             e.preventDefault();
             var id = $(this).attr("data-id");
 			// alert('Making Normal Print');
-            $.ajax({
+			var r = confirm("Want to Make Customer Print ??");
+				  if (r == true) {
+					 $.ajax({
                 url : 'functions.php',
                 type: 'POST',
                 data: { id : id, method: 'getOrderDetail'},
@@ -2509,8 +3187,8 @@ var qtyno = $("input[name='qtyno[]']")
 									// window.setTimeout(function() {al.close()}, 3000);
 
 							alert(JSON.stringify(data));	
-									alert(report.status);
-									alert(report.message);
+									// alert(report.status);
+									// alert(report.message);
                                     if( ! data || data.indexOf('print_setting_error') > -1 ) {
                                         alert("You need to set print ip address in profile page.");
                                     }
@@ -2525,18 +3203,39 @@ var qtyno = $("input[name='qtyno[]']")
                     }
                 }
             });
+				  } else {
+				
+				  }
+           
         });
         $("body").on('click','.status',function(e){
-			e.preventDefault();   
+			e.preventDefault();
+			var process_password_need='<?php echo $process_password_need ?>';
 			var $this = $(this);
 			 // e.preventDefault();   
 			 $(this).attr("disabled", "disabled");  
-			 $this.val('Done');     
+			 // alert(process_password_need);
+			 if(process_password_need>0)
+			 $this.val('Processing');
+			else
+				 $this.val('Done');
 			$(this).css('background','green');
             var data_id = $(this).attr("data-id");
 			// alert(data_id);
+			var selected_invoice_id=$('#selected_invoice_id').val();
 			
-                       // alert(tbl);
+			if(selected_invoice_id)
+			{
+				 var new_in_id=selected_invoice_id+","+data_id;
+				 $('#selected_invoice_id').val(new_in_id);
+			}
+			else
+			{
+				$('#selected_invoice_id').val(data_id);
+				var selected_invoice_id=data_id;
+			}
+			
+		       // alert(tbl);
 			var invo = $(this).attr("data-invoce")
             var status = $(this).attr("status");
 			if(status==0)
@@ -2547,7 +3246,10 @@ var qtyno = $("input[name='qtyno[]']")
                         url: "fetch.php",
                         data: {invoice_num:invo},
                         success: function(data) {
-							 $.ajax({
+							
+							if(process_password_need==0)
+							{
+								 $.ajax({
 								url : 'update_status.php',
 								type: 'POST',
 								data: {id:data_id, status: 1},
@@ -2555,8 +3257,8 @@ var qtyno = $("input[name='qtyno[]']")
 									//~ alert(1);
 									// location.reload();
 								}
-							});
-							
+								});
+							}
                            // alert(data);
                         // print normal order 
 						  
@@ -2611,10 +3313,12 @@ var qtyno = $("input[name='qtyno[]']")
                                         total += amount;
                                         totalQty += parseInt(order['product_qty'][i]);
                                         qtyOfInvoice += parseInt(order['product_qty'][i]);
+										
                                     }
                                     var total_amount =  empty($("#total_amount3").text()) ? 0 : parseFloat($("#total_amount3").text());
                                     total_amount += total;
                                     total = total.toFixed(2);
+                                    $("#paid_wallet_amount").val(total_amount.toFixed(2));
                                     $("#total_amount3").text(total_amount.toFixed(2));
 									var paid=$("#paid3").val();
 									// alert(paid);
@@ -2636,7 +3340,7 @@ var qtyno = $("input[name='qtyno[]']")
                                         '<td style="text-align:center; padding-left: 5px;width: 21%;"><input type="hidden" name="invo[]" value="' + order['invoice_no'] + '">' + order['invoice_no'] + '</td>' +
                                           '<td style="text-align:center; padding-left: 5px;width: 7%;"><input type="hidden" name="qtyno[]" value="' + parseInt(qtyOfInvoice) + '">' + parseInt(qtyOfInvoice) + '</td>' +
                                         
-                                        '<td style="display: none"><input type="hidden" name="product_code[]" value="' + order['product_code'] +'">' + order['product_code'] +'</td>' +
+                                        '<td style="display: none"><input type="hidden" class="past_invoice" name="past_invoice[]" data_id="'+data_id+'" value="'+data_id+'"/><input type="hidden" name="product_code[]" value="' + order['product_code'] +'">' + order['product_code'] +'</td>' +
                                         '<td style="display: none"><input type="hidden" name="remark[]" value="' + order['remark'] +'">' + order['remark'] +'</td>' +
                                         '<td style="display: none"><input type="hidden" name="product_name[]" value="' + order['product_name'] +'">' + order['product_name'] +'</td>' +
                                       
@@ -2687,6 +3391,7 @@ var qtyno = $("input[name='qtyno[]']")
             $("#p_id").val(prodid);
         });
         $("form#scan").submit(function(e) {
+			// alert(32);
             var orders = $("#scanned_data tr");
             orders.each(function(row, v) {
                 $(this).find("td").each(function(cell, v) {
@@ -2765,7 +3470,7 @@ var qtyno = $("input[name='qtyno[]']")
 
         }
     }, 
-    300000);      
+    30000);      
 	 // setInterval(function(){ 
         
   //       if( !hasClass( document.getElementById("myScanModal1"), "show" ) ) {
@@ -2777,7 +3482,7 @@ var qtyno = $("input[name='qtyno[]']")
   //       }
   //   }, 
   //   60000); 
-    // var merchant_id = '<?php echo $_SESSION['login'];?>';
+    // var merchant_id = '<?php echo $loginidset;?>';
     // var site_url = '<?php echo $site_url;?>';
     // setInterval(function(){
         // if( !hasClass( document.getElementById("myScanModal"), "show" ) ) {
@@ -3291,5 +3996,13 @@ TODO:
 }());
 
 </script>
-
-
+<!-- code by avnish tomar -->
+<script>
+$('#mobile_number').on("input",function(){
+	var len = $(this).val().length;
+	if( len >= 10 ){
+	    $("[mode='confirm']").click();
+	}
+});
+</script>
+<!-- end of avnish tomar code -->

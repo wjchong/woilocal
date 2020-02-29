@@ -1104,6 +1104,8 @@ function changePagination(option) {
  }
 function deleterow(obj)
 {
+	// alert(obj.id);
+	// alert(JSON.stringify(obj));
    $("#"+obj.id).remove();
   // return false;
    $('#extra_venrt').val("");
@@ -1346,6 +1348,9 @@ function getcust_name()
               </div>
         
             <div class="header-nav">
+				 <audio id="mysoundclip" preload="auto">
+              <source src="tick.mp3"> </source>
+          </audio>
 
                 <ul class="nav navbar-nav pull-right">
                    <li class="dropdown">
@@ -1479,7 +1484,7 @@ function getcust_name()
 
                                      <tr>
                                         <td class="<?php if($user_roles==2){ echo "show_cal";} ?>" style="padding: 5px 10px; border-top: 1px solid #666; border-bottom: 1px solid #5f5e7d; font-weight:bold; background:#5f5e7d; color:#FFF;" colspan="2">
-                                            Payment :</td>
+                                            Payment : (RM)</td>
                                         <td class="text-right" style="padding:5px 10px 5px 10px; font-size: 14px;border-top: 1px solid #666; border-bottom: 1px solid #5f5e7d; font-weight:bold; background:#5f5e7d; color:#FFF;" colspan="2">
                                             <span id="Payment" style="padding:7%;font-size:22px;" class="<?php if($user_roles==2){ echo "show_cal";} ?> btn btn-success btn-block">RM 0.00</span>
                                         </td>
@@ -1569,6 +1574,7 @@ function getcust_name()
                                 <div class="clearfix"></div>
                                 <div id="botbuttons" class="col-xs-12 text-center">
                                     <input type="hidden" name="biller" id="biller" value="2035"/>
+                                    <input type="hidden" class="user_id" id="user_id" value="<?php echo $loginidset; ?>"/>
                                     <input type="hidden" name="status" id="status" value="0"/>
                                     <input type="hidden" name="discount_amount" id="discount_amount" value="0"/>
                                     <input type="hidden" name="paid_amount_pos" id="paid_amount_pos" value="0"/>
@@ -1648,7 +1654,18 @@ function getcust_name()
                                            
 											 <div style="padding-top: 5px;font-weight:bold;display: flex;" class="input-has-value">
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Discount</span>
-                                                <input type="text" id="discount3" value="0" class="amount" name="discount" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
+                                                <input type="text" id="discount3" value="0" class="amount changenumber" name="discount" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
+                                            </div>
+											
+												<div style="display: flex;font-weight:bold;">
+                                                <span style="font-size: 20px; width: 40%;    border: 1px solid;padding-left: 4px; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Discount in %</span>
+                                                <input type="text" id="discountper" value='0' placeholder="Enter % Discount" class="amount changenumber" name="discountper" style=" font-size: 20px; width:9%;border: 1px solid #555555 ;padding-left: 4px;">%
+												<input type="hidden" id="discount_per_input" name="discount_per_input"/>
+												
+												<span id="discount_per" style="font-size: 20px; width: 30%;border: 1px solid;padding-left: 4px;margin-left:14%;"></span>
+                                               
+                                               
+												
                                             </div>
 											<div style="padding-top: 5px;font-weight:bold;display: flex;" class="input-has-value">
 											    <select class="form-control" name="select_wallet" style="font-size:18px;">
@@ -1661,11 +1678,11 @@ function getcust_name()
 												</select>
                                                
 												
-                                                <input type="text" id="wallet_paid" value="0" class="amount" name="wallet_paid_amount" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
+                                                <input type="text" id="wallet_paid" value="0" class="amount changenumber" name="wallet_paid_amount" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
 											 <div style="padding-top: 5px;font-weight:bold;display: flex;" class="input-has-value">
                                                 <span style="font-size:20px; width: 40%;    border: 1px solid; border-bottom-left-radius: 2px; border-top-left-radius: 2px;">Cash Paid</span>
-                                                <input type="text" id="paid3" value="0" class="amount" name="paid" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
+                                                <input type="text" id="paid3" value="0" class="amount changenumber" name="paid" style=" font-size: 20px; width: 30%;margin-left: 30%;border: 1px solid #555555 ;padding-left: 4px;">
                                             </div>
 											 
                                             <div style="padding-top: 5px;font-weight:bold;display: flex;">
@@ -1798,7 +1815,31 @@ function getcust_name()
 							$("#sst_amt").text(sst_amt.toFixed(2));
 							$("#Payment").text(sst_amt.toFixed(2));
 						}
+						$(document).on("click",'.increase_value', function(e) { 
+							e.preventDefault();
+							alert('inc called');
+							if ($('#posData>.pos_data').length == 0) {
+								return;
+							}
+							
+							var tr = $('#posData>.pos_data:last');
 
+							var qty = 1;
+							var price = parseFloat(tr.find('.jin_price').val());
+							var extra_price = parseFloat(tr.find('.jin_extra_price').val());
+							console.log(qty);
+							console.log(price);
+							console.log(extra_price);
+							var amount = qty * (price + extra_price);
+							
+							console.log(amount);
+
+							tr.find('.qd').val(qty);
+							tr.find('.subt').val(amount.toFixed(2));
+
+							calcTotalAmount();
+							initializeNumpad();
+						});
 						$(document).on("click",'.qty_value', function(e) { 
 							e.preventDefault();
 
@@ -1830,8 +1871,18 @@ function getcust_name()
                             <div class="quick-menu">
                                 <div id="proContainer">
                                     <div id="ajaxproducts">
+										<div class="col-sm-12">
+										  <div class="col-md-2"></div>
+										  <div class="col-md-4">
+										  <input type="text" style="margin-top: 2%;height: 70px;font-size: 20px; class="form-control" name="q" id="criteria_query" placeholder="Enter Product Code ...">
+										  </div>
+										  <div class="col-md-6">
+										  <button type="button" class="btn btn-secondary" id="apply_criteria" style="padding: 27px;font-size: 22px;">Search & Add</button>
+										  </div>
+										</div>
                                         <div class="col-sm-12  text-center" style="padding:0px;">
-										<div class="col-sm-10 text-center" >
+										
+										<div class="col-sm-8 text-center" >
 												<div id="qty_panel" class="col-md-12">
 													<div class="qty_value" qty="2">×2</div>
 													<div class="qty_value" qty="3">×3</div>
@@ -2598,8 +2649,96 @@ function getcust_name()
 		   }
 	   });
    }
+   function hadlekeyDown(e)
+   {
+	   // alert(e.keyCode);
+	   if (e.keyCode === 39) {
+		   // increase qty by one 
+		   // alert(6);
+		   if ($('#posData>.pos_data').length == 0) {
+								return;
+							}
+							
+							var tr = $('#posData>.pos_data:last');
+							var last_id=$('#posData>.pos_data:last').attr('id');
+							var qty=$('#posData>.pos_data:last .qtyInput').val();
+							if(qty)
+							{
+								var qty=parseInt(qty)+1;
+								var price = parseFloat(tr.find('.jin_price').val());
+								var extra_price = parseFloat(tr.find('.jin_extra_price').val());
+								console.log(qty);
+								console.log(price);
+								console.log(extra_price);
+								var amount = qty * (price + extra_price);
+								
+								console.log(amount);
+
+								tr.find('.qd').val(qty);
+								tr.find('.subt').val(amount.toFixed(2));
+
+								calcTotalAmount();
+								initializeNumpad();
+							}
+	   }
+	   	   if (e.keyCode === 37) {
+		   // decrease qty by one  
+		   		   if ($('#posData>.pos_data').length == 0) {
+								return;
+							}
+							
+							var tr = $('#posData>.pos_data:last');
+							var last_id=$('#posData>.pos_data:last').attr('id');
+							var qty=$('#posData>.pos_data:last .qtyInput').val();
+							if(qty)
+							{
+								var qty=parseInt(qty)-1;
+								if(qty==0)
+								{
+									$('#posData>.pos_data:last').remove();
+									var obj=[];
+									obj.id=last_id;
+									deleterow(obj);   
+								}
+								else
+								{
+									var price = parseFloat(tr.find('.jin_price').val());
+									var extra_price = parseFloat(tr.find('.jin_extra_price').val());
+									console.log(qty);
+									console.log(price);
+									console.log(extra_price);
+									var amount = qty * (price + extra_price);
+									
+									console.log(amount);
+
+									tr.find('.qd').val(qty);
+									tr.find('.subt').val(amount.toFixed(2));
+
+									calcTotalAmount();
+									initializeNumpad();
+								}
+							}
+	   }
+   }
+   function handleKeyPress (e) {
+				// alert(e.keyCode);
+                if (e.keyCode === 13) {
+                    var barcodeRead = $("#criteria_query").val();
+					$('#criteria_query').val(barcodeRead);
+                    setTimeout(function(){
+						$('#apply_criteria').click();
+                        // addOrderToDialog( barcodeRead );
+                        $("#criteria_query").val('');
+                        $("#criteria_query").focus();
+                    }, 200);
+                }
+            
+        }
+	
   $( document ).ready(function() {
+	           
 	 			 initializeNumpad(); // Instantiate NumPad once the page is ready to be shown
+				 $('#criteria_query').focus();
 				$('.qtyInput').on('change blur',function(){
 					
 					if($(this).val().trim().length === 0){
@@ -2620,6 +2759,8 @@ function getcust_name()
 	var $grid = $('.grid').isotope({
 	  // options
 	});
+	 document.getElementById("criteria_query").addEventListener('keypress', handleKeyPress);  
+	 document.getElementById("criteria_query").addEventListener('keydown', hadlekeyDown);  
 	$(document).on("click",'.show_cal', function(e) { 
 	    e.preventDefault();
 		var total_q=$('#qty').html();
@@ -2629,17 +2770,205 @@ function getcust_name()
 		$('#total_amount3').html(Payment);
 		$('.fixside').show();
 	});
+	//  pos product code search
+	$("#apply_criteria").click(function(e){ 
+		
+	    var p_code=$('#criteria_query').val();
+		if(p_code)
+		{
+			
+		if(p_code=="0+")
+		{
+			var p_count = $(".pos_data").length;
+			if(p_count==0)
+			{
+				alert('At least Add 1 product');
+			}
+			else
+			{
+				$(this).prop("disabled",true);
+				$("input.pay_submit").hide();
+				$("input.pay_submit").prop("disabled",false);
+				$('#status').val(1);
+				document.getElementById("pos-sale-form").submit();	
+			}
+				
+		}
+		else
+		{
+		$.ajax({
+            url:"functions.php",
+            type:"post",
+            data:{method:"productfind",p_code:p_code},
+            dataType:'json',
+            success:function(response){
+				var data = JSON.parse(JSON.stringify(response));
+				// alert(data);
+				if(data.status==true)
+				{
+					var data=data.data;
+					var id =data.id;
+					var varient_exit =data.varient_exit;
+					if(varient_exit=="n")
+					{
+						var ex_id = $('#extra_venrt').val();
+						var last_add_id = $('#last_add_id').val();
+						var rmk_val = $('#extraprice_'+id).val();
+						// alert(rmk_val);
+						var remark = $('#remark_'+id).val();
+						var extravar = $('#extra_'+id).val();
+						// document.getElementById("pop_cart").style.backgroundColor="#03a9f3";
+						$.ajax({
+							  type: 'post',
+							  url: 'productData.php',
+							  data: {p_id:id,sp_id:ex_id,remark:remark,extravar:extravar,rmk_val:rmk_val,last_add_id:last_add_id},
+							  success: function (data) {
+							  //alert(data);
+							 
+							  if( data != null ) {
+									//alert('The product added');
+									$('#check'+id).html('<i class="fa fa-plus"></i>');
+									var new_last_add_id=parseInt(last_add_id) + 1;
+									$('#last_add_id').val(new_last_add_id);
+									$('#posData').append(data);
+								   $('#extra_venrt').val("");
+									  //  }
+									var sst_rate = document.getElementById("sstvals").value;
+									var qd=0;
+									var subtol = 0;
+									var sst =0;
+									$(".qd").each(function()
+									 {
+										qd = parseInt(qd)+parseInt($(this).val());
+									 });
+									$("#qty").text(qd);
+
+									$(".subt").each(function(){
+
+									  subtol = parseFloat(subtol)+parseFloat($(this).val());
+									   sst = subtol * sst_rate/100;
+									   
+									  sst_amt = parseFloat(sst)+parseFloat(subtol);
+
+									});
+									 $("#subtol").text(subtol.toFixed(2));
+									 // alert(sst.toFixed(2));
+									 $("#sst").text(sst.toFixed(2));
+									 $("#my_sst").text(sst_rate);
+									  $("#sst_amt").text(sst_amt.toFixed(2));
+									  $("#Payment").text(sst_amt.toFixed(2));
+
+							   }
+								 initializeNumpad();
+							  }
+							});
+						}
+						else
+						{
+							// with varient product code 
+							var p_price =data.product_price;
+							$('#varient_count').val(0);
+							$("#product_main").html("");
+							$("#product_table").html("");
+							$('#varient_must').val('y');
+							var child_id="child_"+id;
+							// alert(child_id);
+							var product_child_id="product_child_"+id;
+							var subproduct_selected = '';
+							var single_remarks = '';
+							// var single_remarks = $(this).parent().parent().find("input[name='single_ingredients']").val();
+							// alert(single_remarks);
+							var p_extra =0;
+							var code = data.product_type;
+							var name = data.product_name;
+							var quantity =1;
+							// alert(quantity);
+							// var p_total = p_price*quantity;
+							p_total = parseFloat(p_price).toFixed(2);
+							$("#varient_name").html(name);
+							$("#p_pop_price").val(p_total);     
+							$("#product_table").append("<tr><td> "+name+" </td><td> "+p_total+" </td></tr>");  
+							$("#pr_total").html("<b>"+p_total+"</b>");
+							$(".pop_model").html("<div class='row' style='width:11em'><div class='col-md-12' style='display:none;'>Quantity: <input name='quantity_input' type='hidden' class='quatity' value='1' style='width:2em;text-align:center' min='0' max='99'></div></div><input type='hidden' name='single_ingredients' value='" + single_remarks + "'/><input type='hidden' name='extra' value='" + p_extra + "'/><span id='pop_cart' data-pr=" + p_price + " data-id='"+id+"' data-code='"+code+"'  data-name='"+name+"' data-quantity='"+quantity+"'>Add to Cart</span>");
+							for(var i = 0; i < subproducts_global.length; i++){
+								for(var j = 0; j < subproducts_global[i].length; j++){
+								  if(subproducts_global[i][j]['product_id'] == id){
+									subproduct_selected = subproducts_global[i];
+									break;
+								  }
+								}
+							  }
+							  // console.log(subproduct_selected);
+							  var exists_in_subproducts = false;
+							  for(var i = 0; i < subproduct_selected.length; i++){
+								if(subproduct_selected[i]['product_id'] == id){
+								  exists_in_subproducts = true;
+								  break;
+								}
+							  }
+							  if(exists_in_subproducts){   
+								
+								var content = '';
+								for(var i = 0; i < subproduct_selected.length; i++){
+								  content +="<div  id='prodct_cart_"+subproduct_selected[i]['id']+"' data-name='"+subproduct_selected[i]['name']+"' data-id='"+subproduct_selected[i]['id']+"' data-price='"+subproduct_selected[i]['product_price']+"' class='ingredient product_cart'>";
+									  content +="<button type='button' class='btn btn-info remove-ingredient' data-name='"+subproduct_selected[i]['name']+"' data-id='"+subproduct_selected[i]['id']+"' data-price='"+subproduct_selected[i]['product_price']+"' aria-label='Close'>";
+									  content +="<span aria-hidden='true'><i class='fa fa-plus'></i></span>";
+									  content +="</button><span class='ingredient-name'>"+subproduct_selected[i]['name']+" &nbsp; Price Rm "+subproduct_selected[i]['product_price']+"</span></div>";
+								  // console.log(content);
+								  
+								}
+
+								$("#product_main").html(content);
+								$("#ProductModel").modal("show");
+
+							  }
+						}
+						  
+				}
+				else
+				{
+					alert(data.msg);  
+				}
+				$('#criteria_query').val('');
+				$('#criteria_query').focus();
+				$('#apply_criteria').prop("disabled",false);
+			}
+		});
+	}	
+	}	
+	 });
 	$("#pending_close").click(function() {
 			$('.fixside').hide();
 		});
 		$('.pos_submit').click(function() {
-		 $("input.pay_submit").prop("disabled",false);
+			var p_count = $(".pos_data").length;
+			if(p_count==0)
+			{
+				alert('At least Add 1 product');
+				return false;
+			}
+			else
+			{
+				$("input.pay_submit").prop("disabled",false);
+			}
 		 	
 	});
-	$('.pay_submit').click(function() {
-		 $("input.pay_submit").prop("disabled",false);
-		 $('#status').val(1);
-      document.getElementById("pos-sale-form").submit();		
+	$('.pay_submit').click(function(e) {
+		e.preventDefault();
+		var p_count = $(".pos_data").length;
+			if(p_count==0)
+			{
+				alert('At least Add 1 product');
+			}
+			else
+			{
+				 $("input.pay_submit").hide();
+				 $("input.pay_submit").prop("disabled",false);
+				 $('#status').val(1);
+				  document.getElementById("pos-sale-form").submit();	
+			}
+		
+     	
 	});
 	$('.num3').click(function() { 
                     // alert(2);
@@ -2647,22 +2976,58 @@ function getcust_name()
 					  // alert(mb);
                      $('#paid3').val(mb);
                    var dis_num =$("#discount3").val();
+				    var dis_per =$("#discountper").val();
+			
 		    var tol = document.getElementById("total_amount3").innerText;
+			var perc = percentage(tol,dis_per).toFixed(2);
+			$('#discount_per_input').val(perc);
+			$('#discount_per').html(perc);
 			var paid3=mb;
 			var paidkoocoin=$("#wallet_paid").val();
-			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
-			  var mb = $('#viewer3').text();
-		// alert(mb);
-		    		  // var final = parseFloat(tol)-parseFloat(total_paid);
-		    		  // var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
-		    		  var final =(parseFloat(paid3)+parseFloat(paidkoocoin))-(parseFloat(tol)+parseFloat(dis_num));
-                var value = Math.abs(final);
+			var total_paid = parseFloat(dis_num)+parseFloat(paid3);
+			var mb = $('#viewer3').text();
+			// alert(mb);
+		    // var final = parseFloat(tol)-parseFloat(total_paid);
+		     // var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
+			var final =parseFloat(tol)-parseFloat(dis_num)-parseFloat(perc)-parseFloat(paidkoocoin)-parseFloat(paid3);
+			// var final =(parseFloat(paid3)+parseFloat(paidkoocoin))-(parseFloat(tol)+parseFloat(dis_num));
+              var value = Math.abs(final);
                       var v = value.toFixed(2);
                       $('#change3').val(v);
 		$('#paid_amount_pos').val(paid3);
 		$('#change_pos').val(v);
 		$('#discount_amount').val(dis_num);
                     });
+					function percentage(num, per) {
+   return (num/100)*per;
+} 
+ $(".changenumber").on("keyup", function(){
+		   var dis_per =$("#discountper").val();
+		    var dis_num =$("#discount3").val();
+		    var tol = document.getElementById("total_amount3").innerText;
+			var perc = percentage(tol,dis_per).toFixed(2);
+			// alert(perc);  
+			$('#discount_per_input').val(perc);
+			$('#discount_per').html(perc);
+			var paid3=$('#paid3').val();   
+			var paidkoocoin=$("#wallet_paid").val();
+			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
+			  var mb = $('#viewer3').text();
+		// alert(mb);
+		    		  // var final = parseFloat(tol)-parseFloat(total_paid);
+		    		  // var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
+		    		  // var final =(parseFloat(paid3)+parseFloat(paidkoocoin))-(parseFloat(tol)+parseFloat(dis_num));
+					  //  Total - discount - discount by percentage( to be created by you)-Boost pay-Cash paid
+					 
+		    		  var final =parseFloat(tol)-parseFloat(dis_num)-parseFloat(perc)-parseFloat(paidkoocoin)-parseFloat(paid3);
+                var value = Math.abs(final);
+                      var v = value.toFixed(2);
+                      $('#change3').val(v);
+		$('#paid_amount_pos').val(paid3);
+		$('#change_pos').val(v);
+		$('#discount_amount').val(dis_num);
+	 });
+	 /*
 	 $("#discount3").on("keyup", function(){
 		   var dis_num =$("#discount3").val();
 		    var tol = document.getElementById("total_amount3").innerText;
@@ -2670,9 +3035,7 @@ function getcust_name()
 			var paidkoocoin=$("#wallet_paid").val();
 			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
 			  var mb = $('#viewer3').text();
-		// alert(mb);
-		    		  // var final = parseFloat(tol)-parseFloat(total_paid);
-		    		  // var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
+		
 		    		  var final =(parseFloat(paid3)+parseFloat(paidkoocoin))-(parseFloat(tol)+parseFloat(dis_num));
                 var value = Math.abs(final);
                       var v = value.toFixed(2);
@@ -2681,6 +3044,8 @@ function getcust_name()
 		$('#change_pos').val(v);
 		$('#discount_amount').val(dis_num);
 	 });
+	 
+	 
 	  $("#wallet_paid").on("keyup", function(){
 		var dis_num =$("#discount3").val();
 		    var tol = document.getElementById("total_amount3").innerText;
@@ -2688,9 +3053,7 @@ function getcust_name()
 			var paidkoocoin=$("#wallet_paid").val();
 			 var total_paid = parseFloat(dis_num)+parseFloat(paid3);
 			  var mb = $('#viewer3').text();
-		// alert(mb);
-		    		  // var final = parseFloat(tol)-parseFloat(total_paid);
-		    		  // var final =(parseFloat(tol))-(parseFloat(total_paid)+parseFloat(paidkoocoin));
+		
 		    		  var final =(parseFloat(paid3)+parseFloat(paidkoocoin))-(parseFloat(tol)+parseFloat(dis_num));
                 var value = Math.abs(final);
                       var v = value.toFixed(2);
@@ -2717,6 +3080,7 @@ function getcust_name()
 		$('#change_pos').val(v);
 		$('#discount_amount').val(dis_num);
 	 });
+	 */
 	$(document).on("click",'.master_category_filter', function(e) { 
 	    e.preventDefault();
 		var filterValue = $(this).attr('data-filter');
@@ -2931,6 +3295,8 @@ function getcust_name()
 	   
         event.preventDefault();
 		var id = $(this).data("id");
+		 var audio = $("#mysoundclip")[0];
+      audio.play();
 		// alert(id);
 		 // var id = $(obj).attr("data-id");
     // var id = obj.id;
@@ -3179,6 +3545,8 @@ function getcust_name()
     console.log("Hola");
 	// alert(4);
     var p_price = $(this).data("pr");
+	 var audio = $("#mysoundclip")[0];
+      audio.play();
     console.log(p_price);   
      $('#varient_count').val(0);
      $("#product_main").html("");

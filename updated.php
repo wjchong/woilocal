@@ -1,5 +1,11 @@
 <?php
-
+$session_file = "./sessioned-user.txt";
+if (file_exists($session_file)) {
+    $session_user = file_get_contents("./sessioned-user.txt");
+}
+else {
+    exit("[]");
+}
 $posted = file_get_contents("php://input");
 
 require_once "./config.php";
@@ -10,7 +16,7 @@ if (!$conn)
 }
 
 // Retrieve all order lists
-$query = mysqli_query($conn, "SELECT order_list.* FROM order_list ORDER BY `created_on` DESC");
+$query = mysqli_query($conn, "SELECT order_list.* FROM order_list where merchant_id='$session_user' ORDER BY `created_on` DESC");
 
 $orders = array();
 $now = date_create(date("Y-m-d G:i:s"));

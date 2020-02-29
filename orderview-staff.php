@@ -594,13 +594,17 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 </head>
 <body class="header-light sidebar-dark sidebar-expand pace-done">
    <?php 
-     if(isset($_SESSION['pos'])=="y")
+     if($_SESSION['pos']=="y")
 		{
+		    // print_R($_SESSION);
+			// die;
+			unset($_SESSION['pos']);
+			 $_SESSION['pos']="";   
 	   ?>
-	   <!--meta http-equiv="Refresh" content="10; url=http://127.0.0.1/koofamilies/pos.php" /!-->
+	   <meta http-equiv="Refresh" content="3; url=<?php echo $site_url;?>/pos.php" />
 	   <?php 
 		}
-		   $_SESSION['pos']=="";
+		  
    ?>
 <div id="wrapper" class="wrapper">
     <!-- HEADER & TOP NAVIGATION -->
@@ -619,16 +623,16 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                 <div class="well">
 				 
                     <?php if (count($pending_data) > 0){?>
-                        <h5 style="color: red;">Invoice not yet done and require immediate attention!</h5>
+                      <h5 style="color: red;"><?php echo $language['invoice_not_yet']; ?></h5>
                         <div style="width: 380px; max-height: 300px; overflow: auto;">
                         
                             <table class="table table-striped" >
                               <thead>
                                 <tr>
                                   <th><?php echo $language["date_of_order"];?></th>
-                                  <th>Invoice <br> Numbers</th>
-                                  <th>Section <br> Numbers</th>
-                                  <th>Table <br> Number</th>
+                                  <th><?php echo $language['invoice_number']; ?></th>
+                                  <th><?php echo $language['section_number']; ?></th>
+                                  <th> <?php echo $language['table_number']; ?></th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -656,7 +660,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                     <div>
                         <h3><?php //echo $language['order_list'];?></h3>
                         <span style="cursor: pointer; color:blue;text-decoration:underline;font-size: 40px;" id="scan_order"><?php echo $language['scan_order'];?></span>
-						&nbsp;&nbsp;&nbsp;&nbsp;<span style="cursor: pointer; color:green;text-decoration:underline;font-size: 40px;" id="scan_order1">Table/combine bill</span>
+						&nbsp;&nbsp;&nbsp;&nbsp;<span style="cursor: pointer; color:green;text-decoration:underline;font-size: 40px;" id="scan_order1"><?php echo $language['table_combine'];?></span>
 						<p><a href="pos.php" style="cursor: pointer; color:green;text-decoration:underline;font-size: 40px;margin-left:20%;">Place Order</a></p>
 						<?php if($alaram_required=="y"){ ?>
 						 <span class="alaram" style="display:none;">
@@ -670,10 +674,10 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							<div class="row">
 							  <div class="col-sm-2">
 								<select class="form-control" name="cr" id="criteria_field">
-								  <option <?php echo (!isset($_GET['cr']) || $_GET['cr'] == "invoice_no") ? "selected" : ""; ?> val="invoice_no">Invoice number</option>
-								  <option <?php echo ($_GET['cr'] == "table") ? "selected" : ""; ?> val="table">Table number</option>
-								  <option <?php echo ($_GET['cr'] == "prod_no") ? "selected" : ""; ?> val="prod_no">Product code</option>
-								  <option <?php echo ($_GET['cr'] == "phone_no") ? "selected" : ""; ?> val="phone_no">Phone number</option>
+								  <option <?php echo (!isset($_GET['cr']) || $_GET['cr'] == "invoice_no") ? "selected" : ""; ?> val="invoice_no"><?php echo $language['invoice_number'];?></option>
+								  <option <?php echo ($_GET['cr'] == "table") ? "selected" : ""; ?> val="table"><?php echo $language['table_number'];?></option>
+								  <option <?php echo ($_GET['cr'] == "prod_no") ? "selected" : ""; ?> val="prod_no"><?php echo $language['product_code'];?></option>
+								  <option <?php echo ($_GET['cr'] == "phone_no") ? "selected" : ""; ?> val="phone_no"><?php echo $language['telephone_number'];?></option>
 								</select>
 							  </div>
 							  <div class="col-sm-2">
@@ -682,10 +686,10 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							</div>
 							<div class="row">
 								<div class="col-sm-1" style="margin-top:20px;max-width:150px;">
-									<button type="button" class="btn btn-secondary" id="apply_criteria">Aply criteria</button>
+									<button type="button" class="btn btn-secondary" id="apply_criteria"><?php echo $language['apply_criteria'];?></button>
 							  </div>
 								<div class="col-sm-1" style="margin-top:20px">
-									<button type="button" class="btn btn-danger" onclick="window.location.href='./orderview.php'">Clear criteria</button>
+									<button type="button" class="btn btn-danger" onclick="window.location.href='./orderview.php'"><?php echo $language['clear_criteria'];?></button>
 							  </div>
 							</div>
 						  </form>
@@ -714,18 +718,21 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 					<?php } ?>
                     <table class="table table-striped">
                         <thead>
-                        <tr>
+                         <tr>
 						    <?php if($merchant_name['spassword'] && $merchant_name['spassword_need']){ ?> <th>Action</th> <?php  } ?>
                             <th><?php echo $language["items"];?></th>
                             <th><?php echo $language["date_of_order"];?></th>
                            
                             <th><?php echo $language["status"];?></th>
-                            <th><?php echo "Sec";?></th>
+                            <th><?php echo $language["detail"];?></th>
+                            <th><?php echo $language["short_section"];?></th>
+							
+                            
                             <th><?php echo $language["table_number"];?></th>
-							<th>Invoice Number</th>
-                            <th>Internal Receipt</th>
-							<th>Customer receipt</th>
-                            <th><?php echo $language["chat"];?></th>
+							<th><?php echo $language["invoice_number"];?></th>
+                            <th><?php echo $language["internal_recipt"];?></th>
+							<th><?php echo $language["customer_recipt"];?></th>
+                            <!--th><?php echo $language["chat"];?></th!-->
                             
 							 <th><?php echo $language["amount"];?></th>
 							  <th><?php echo $language["quantity"];?></th>
@@ -735,33 +742,38 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							 <!--th><?php echo "Grand Total (Inc ".$sstper." % SST)";?></th!-->
 							 <th><?php echo "Grand Total";?></th>
 							<?php } ?>
-                            <th><?php echo "Paid By Wallet";?></th>
-                            <th><?php echo "Bal.  Payment";?></th>
+							 <th><?php echo $language["delivery_charges"];?></th>
+							  <th><?php echo $language["membership_discount"];?></th>
+							  <th><?php echo $language['coupon_discount']; ?></th>
+							  <th><?php echo $language["final_total"];?></th>
+                           
+                            <th><?php echo $language['paid_by_wallet'];?></th>
+                            <th><?php echo $language['bal_payment'];?></th>
+                       
                            
                             <th class="product_name test_product"><?php echo $language["product_name"];?></th>
-							   <th class="product_name test_product"><?php echo "VARIENT";?></th>
-                            <th class="product_name test_product"><?php echo $language["remark"];?></th>
+							<th class="product_name test_product" style="min-width: 350px;"><?php echo $language['varient'];?></th>
+                            <th class="product_name test_product" style="min-width: 350px;"><?php echo $language["remark"];?></th>
                             <th><?php echo $language["product_code"];?></th>
-                            <th>Price</th>
-							
+                           
                             <th><?php echo $language["mode_of_payment"];?></th>
                             <th class="location_head"><?php echo $language["location"];?></th>
-                            <th>Phone</th>
-							 <th>Username</th>
-                            <th>Delivery <br> Service</th>
+                            <th class="order_remark"><?php echo $language['order_remark'];?></th>
+                            <th><?php echo $language["phone"];?></th>
+							 <th><?php echo $language["username"];?></th>
+                           
+							<th><?php echo $language["delivery_services"];?></th>
                             <!-- <th><?php echo $language["print"];?></th> -->
                             <th>K1/K2</th>
-							<th>Invoice</th>
-							<th>Kitchen</th>
+							
+							<th><?php echo $language["invoice"];?></th>
+							<th><?php echo $language["kitchen"];?></th>
                         </tr>
                         </thead>
-                        <tbody id="orderview-body">
+                         <tbody id="orderview-body">
                         <?php
                         $i =1;
                         while ($row=mysqli_fetch_assoc($total_rows)){
-							// print_R($row);
-							// die;
-							
 						$wallet=$row['wallet'];
 						if($wallet=="myr_bal")
 						$wal_label="MYR WALLET";
@@ -769,7 +781,9 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 						$wal_label="KOO COIN";
 						 else if($wallet=="usd_bal")
 						$wal_label="CF WALLET";
-						else $wal_label="CASH";
+						else if($wallet=="cash")
+							$wal_label="CASH";
+						else $wal_label=$wallet;
                         $product_ids = explode(",",$row['product_id']);
                         $quantity_ids = explode(",",$row['quantity']);
                         $amount_val = explode(",",$row['amount']);
@@ -786,6 +800,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                         
                        
                         $date=date_create($created);
+							
                         ?>
                         <?php
                         if($row['status'] == 1) $callss = "gr";
@@ -798,6 +813,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                             <input type="hidden" class="userphone_<?php echo $row['id'];?>" value="<?php echo $row['user_mobile'];?>" >
                             <input type="hidden" class="merchantphone_<?php echo $row['id'];?>" value="<?php echo $merchant_name['mobile_number'];?>" >
                             <input type="hidden" class="merchantaddress_<?php echo $row['id'];?>" value="<?php echo $merchant_name['google_map'];?>" >
+							<input type='hidden' id='cash_id' name='cash_id' value='<?php echo $cash_id; ?>'/>
                             <?php if($i==1){ ?>
 							<input type="hidden" value="<?php echo $last_id;?>"  id="last_id"/>
 							<?php } ?>
@@ -818,6 +834,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                               $diff_second = $dteDiff->s;
                               if($diff_second < 10) $diff_second = '0'.$diff_second;
                               $diff_time = $diff_day.'<br>'.$diff_hour.$diff_minute.$diff_second;
+							 
                             ?>
                             <td><?php echo date_format($date,"m/d/Y");  ?>
                                 <?php echo '<br>'; echo $new_time[1] ?>
@@ -844,31 +861,33 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 									$sta = "Accepted";
 									$s_color="";
 								}
+								
                                 ?>
-								<input type="button" style="background-color:<?php echo $s_color;?>" class= "<?php if($row['status']!='0') echo "status"; ?> btn btn-primary" value="<?php  echo $sta;?>" status="<?php echo $row['status'];?>" data-invoce='<?php echo $row['invoice_no'];?>' data-id="<?php echo $row['id']; ?>"/>
+						<input type="button" style="background-color:<?php echo $s_color;?>" class= "btn btn-primary" value="<?php  echo $sta;?>" status="<?php echo $row['status'];?>" data-invoce='<?php echo $row['invoice_no'];?>' data-id="<?php echo $row['id']; ?>"/>
 							   <!--label class= "status btn btn-primary" status="<?php echo $row['status'];?>" data-invoce='<?php echo $row['invoice_no'];?>' data-id="<?php echo $row['id']; ?>"> <?php echo $sta; ?></label!-->
                               
-							</td>  
+							</td>
+							<td class="s_order_detail btn btn-primary" order_id='<?php echo $row['id']; ?>'>Detail</td>
 							   <td class="table_number_<?php echo $row['id']?>"><?php echo $row['section_name'];?></td>
 							<td class="table_number_<?php echo $row['id']?>"><?php echo $row['table_type'];?></td>
                              <td>
                                 <?php echo $row['invoice_no']; ?>
                             </td>
                             <td>
-							 <a class="print-order <?php  if($row['auto_print']!='1'){ echo "blinking";} ?>" href="#" data-id="<?php echo $row['id']; ?>" data-invoice="<?php echo $row['invoice_no']; ?>">Print Receipt</a>
+							 <a class="print-order <?php  if($row['auto_print']!='1'){ echo "blinking";} ?>" href="#" data-id="<?php echo $row['id']; ?>" data-invoice="<?php echo $row['invoice_no']; ?>"><?php echo $language['print_receipt']; ?></a>
 							  
                             </td>
 							 <td>
-							 <a class="normal_print" href="#" data-id="<?php echo $row['id']; ?>" data-invoice="<?php echo $row['invoice_no']; ?>">Print Receipt</a>
+							 <a class="normal_print" href="#" data-id="<?php echo $row['id']; ?>" data-invoice="<?php echo $row['invoice_no']; ?>"><?php echo $language['print_receipt']; ?></a>
 							  
-                            </td>
+                            </td>  
 							
-                            <td><a target="_blank" href="<?php echo $site_url; ?>/chat/chat.php?sender=<?php echo $loginidset?>&receiver=<?php echo $row['user_id'];?>"><i class="fa fa-comments-o" style="font-size:25px;"></i></a></td>
+                            <!--td><a target="_blank" href="<?php echo $site_url; ?>/chat/chat.php?sender=<?php echo $loginidset?>&receiver=<?php echo $row['user_id'];?>"><i class="fa fa-comments-o" style="font-size:25px;"></i></a></td!-->
                            
                             <td class="amount_<?php echo $row['id'];?>">
 
                                 <?php
-
+							
                                 $q_id = 0;
 
                                 foreach ($amount_val as $key => $value){
@@ -898,6 +917,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 
                             </td> 
 							<td class="quantity_<?php echo $row['id'];?>"><?php
+							
                                 foreach ($quantity_ids as $key)
                                 {  
                                     echo $key;
@@ -927,13 +947,21 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 							 ?>
 							  <td><?php echo $incsst; ?></td>
 							  <td><?php  echo $g_total;?></td>
+							  
 							<?php } else { $g_total=$total;} ?>
-							<td><?php echo @number_format($row['wallet_paid_amount'],2); ?></td>
-							<td><?php echo @number_format($g_total-$row['wallet_paid_amount'], 2); ?></td>
+							
+							<td><?php  echo @number_format($row['order_extra_charge'],2); ?></td>
+							<td><?php  echo @number_format($row['membership_discount'],2); ?></td>
+							<td><?php echo @number_format($row['coupon_discount'],2); ?></td>
+							<td><?php  echo @number_format(($g_total+$row['order_extra_charge'])-($row['membership_discount']+$row['coupon_discount']),2); ?></td>
+							
+							<td><?php  echo @number_format($row['wallet_paid_amount'],2); ?></td>
+							<td><?php echo @number_format(($g_total+$row['order_extra_charge'])-($row['wallet_paid_amount']+$row['membership_discount']), 2); ?></td>   
                            
                           
                             <td class="products_namess product_name_<?php echo $row['id'];?> test_productss" ><?php foreach ($product_ids as $key )
                                 {
+									
                                     if(is_numeric($key))
                                     {
                                         $product = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM products WHERE id ='".$key."'"));
@@ -947,10 +975,15 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                 ?>
                             </td>
 							<td><?php
+							 // $row['varient_type'];
+							// die;
+							 // print_R($row['varient_type']);
+							// die;
 							 if($row['varient_type'])
 							 {
-							$v_str=$row['varient_type'];
-							$v_array=explode("|",$v_str);
+						$v_str=$row['varient_type'];
+							$v_array=explode(",",$v_str);
+							  
 							foreach($v_array as $vr)
 							{
 								
@@ -958,10 +991,12 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
 								{
 									$v_match=$vr;
 									$v_match = ltrim($v_match, ',');
+									// echo "SELECT * FROM sub_products WHERE id  in ($v_match)";
+									// die;
 									$sub_rows = mysqli_query($conn, "SELECT * FROM sub_products WHERE id  in ($v_match)");
 									while ($srow=mysqli_fetch_assoc($sub_rows)){
 										echo $srow['name'];
-										echo "&nbsp;&nbsp;";
+										// echo "&nbsp;&nbsp;";
 									}
 								}
 								 else
@@ -994,20 +1029,18 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                                     echo $key.'<br>'; }
                                 ?>
                             </td>
-                            <td>
-                                <?php
-                                foreach ($amount_val as $key => $value){
-                                    echo @number_format($value, 2).'<br>';
-                                }
-                                ?>
-                            </td>
+                           
                             
                              <td><?php echo $wal_label;  ?></td>  
-                            <td class="location_<?php echo $row['id']; ?> new_tablee"><?php echo $row['location'];?></td>
+                            <td class="location_<?php echo $row['id']; ?> new_tablee">
+							<a class="" target="_blank" href="http://maps.google.com/maps?q=<?php echo  $row['location']; ?>">  
+						
+							<?php echo $row['location'];?></a></td>
+							 <td><?php echo $row['remark_extra']; ?></td>
                               <td><?php echo $row['user_mobile']; ?></td>
 							   <td class="username_<?php echo $row['id'];?>"><?php echo $row['user_name']; ?></td>
                             <td><a onclick="copy_orderDetail(<?php echo $row['id']?>)" href="#" class="delivery" id="<?php echo $row['id'];?>"><i class="fa fa-truck" style="font-size:25px;"></i></a></td>
-                            <td><?php echo $row['wallet'];  ?></td>
+                            <td><?php echo $wal_label;  ?></td>   
                             <?php if($sta == "Done"){?>
                                 <td></td>
                             <?php }?>
@@ -1020,7 +1053,7 @@ header("Access-Control-Allow-Headers: Origin, X-Requested-With, Content-Type, Ac
                         </tr>
                         <?php   $i++; }
                         ?>
-                        </tbody>
+                        </tbody>  
                     </table>  
 					<?php if($rec_count>25){ ?>    
 					<p style="">
@@ -1971,6 +2004,21 @@ var qtyno = $("input[name='qtyno[]']")
         return (' ' + element.className + ' ').indexOf(' ' + className + ' ') > -1;
     }
     $(document).ready(function(){
+		 $(".s_order_detail").click(function(e){
+		  var s_id = $(this).attr('order_id');
+		  $.ajax({
+                        type: "POST",
+                        url: "singleorder.php",
+                        data: {s_id:s_id},
+                        success: function(data) {
+							$('#orderdata').html(data);
+                        },
+                        error: function(result) {
+                            alert('error');
+                        }
+                });
+		  $("#orderdetailmodel").modal("show"); 
+	  });
 		$("#apply_criteria").on("click", function(e){
 			e.preventDefault();
 			var criteria = $("#criteria_field").find("option:selected").attr("val");

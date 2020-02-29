@@ -69,36 +69,7 @@
    		return false;
    	}
    }
-   if(isset($_SESSION['login']) && !empty($_SESSION['login']) && checkSession() && isset($_COOKIE["session_id"]))
-   {
-   	header("location: dashboard.php");
-   }else if(isset($_SESSION['login']) && empty($_SESSION['login'])) {
-   	header('location: logout.php');
-   }else if(isset($_COOKIE["session_id"])){
-   	$ss = explode("_", $_COOKIE['session_id']);
-   	if(sizeof($ss) > 1){
-   		if(!empty($ss[1])){
-   			if(checkSession()){
-   				$_SESSION['login'] = $ss[0];
-   				header("location: login.php");
-   			}else{
-   				header('location: logout.php');
-   			}
-   		}else{
-   			header('location: logout.php');
-   		}
-   	}else{
-   		header('location: logout.php');
-   	}
-   }else if(isset($_GET['tk']) && !empty($_GET['tk'])){
-   	if(checkToken()){
-   		header('location: dashboard.php');
-   	}else{
-   		header('location: ./login.php');
-   	}
-   }else if(isset($_GET['tk']) && empty($_GET['tk'])){
-   	header('location: ./login.php');
-   }
+ 
    if(isset($_SESSION['invitation_id'])){
        unset($_SESSION['invitation_id']);
    }
@@ -475,9 +446,10 @@
    				*/
 				if($user_role=='2')
    		    	header("location:orderview.php");
-			     else 
-				header("location:dashboard.php");	 
-				// header("location:dashboard.php");	 
+			     else  if($user_role=='2')
+				header("location:orderview_staff.php");
+				else 
+				header("location:view_merchant.php?sid=601159223660");	 
    			}else{
    				echo "An error occuried, please, try again later.";
    			}
@@ -491,6 +463,7 @@
    				$_SESSION['setup_shop'] = $setup_shop;
    				$_SESSION['referral_id'] = $referral_id;
    				$_SESSION['name'] = $name;
+				$_SESSION['login_user_role'] = $user_role;
    				$_SESSION['mobile'] = $mobile_number;
        		}
        		else
@@ -793,10 +766,10 @@
 				   <p id="date" style="font-size:15px;color:red;font-weight:bold;"></p><br><br>
                     <p id="time" style="font-size:24px;color:red;font-weight:bold;"></p>.
 					 <script>
-	
+	var c_date='<?php echo date("d-m-Y"); ?>';
 var today = new Date();
 var date = today.getDate()+'-'+today.getMonth()+'-'+(today.getFullYear()+1);
-document.getElementById("date").innerHTML="Current Date : "+date;
+document.getElementById("date").innerHTML="Current Date : "+c_date;
 function myfunc()
 {
 var today2 = new Date();
@@ -1054,8 +1027,9 @@ setInterval(myfunc,1000);
                                         		<option data-countryCode="ZW" value="263">Zimbabwe (+263)</option>
                                         	</optgroup>
                                         </select>
-                                        <input type="text" class="mobile_number" placeholder="<?php echo $language["telephone_number"];?>" name="mobile_number" style="font-size:25px;" required />
-                                        <div class="select_optionss">
+                                         <input type="text" class="mobile_number" onclick="onusr();" placeholder="<?php echo $language["telephone_number"];?>" name="mobile_number" id="mobile_number" style="font-size:25px;" required />
+                                       
+										<div class="select_optionss">
                                     	<input type="radio" name="user_rolehwe" value="2" checked> <?php echo $language["merchant"];?>
 									    <input type="radio" name="user_rolehwe" value="1"> <?php echo $language["member"];?>
 										
@@ -1067,7 +1041,7 @@ setInterval(myfunc,1000);
 							</div>
 									</div>
 									
-                                        <input type="password" name="password" id='login_pass' class="password" placeholder="<?php echo $language["password"];?>" required />
+<input type="password" name="password" id='login_pass' class="password" placeholder="<?php echo $language["password"];?>" onclick="onpass();" required />
                                       <div class="input-group-addon">
 										   <i  onclick="myFunction()" id="eye_slash" class="fa fa-eye-slash" aria-hidden="true"></i>
 										  <span onclick="myFunction()" id="eye_pass"> Show Password </span>
@@ -1075,13 +1049,25 @@ setInterval(myfunc,1000);
 									
                                  <br>
                                  <br>
-                                 <style>
+                                   <style>
                                  #keyboard {  
 margin: 0;  
 padding: 0;  
 list-style: none;  
 }  
     #keyboard li {  
+    float: left;  
+    margin: 0 5px 5px 0;  
+    width: 60px;  
+    height: 60px;  
+    font-size: 24px;
+    line-height: 60px;  
+    text-align: center;  
+    background-color: lightblue;  
+    border: 1px solid #f9f9f9;  
+    border-radius: 5px;  
+    }  
+    #keyboard2 li {  
     float: left;  
     margin: 0 5px 5px 0;  
     width: 60px;  
@@ -1115,6 +1101,25 @@ list-style: none;
             #keyboard .rightright-shift {  
             width: 109px;  
             }  
+            #keyboard2 .tab, #keyboard2 .delete {  
+            width: 70px;  
+            }  
+            #keyboard2 .capslock {  
+            width: 80px;  
+            }  
+            #keyboard2 .return {  
+            width: 90px;  
+            }  
+            #keyboard2 .left-shift{  
+            width: 70px;  
+            }  
+
+            #keyboard2 .switch {
+            width: 90px;
+            }
+            #keyboard2 .rightright-shift {  
+            width: 109px;  
+            }  
         .lastitem {  
         margin-right: 0;  
         }  
@@ -1128,6 +1133,13 @@ list-style: none;
         #keyboard .switch, #keyboard .space, #keyboard .return{
         font-size: 16px;
         }
+        #keyboard2 .space {  
+        float: left;
+        width: 556px;  
+        }  
+        #keyboard2 .switch, #keyboard2 .space, #keyboard2 .return{
+        font-size: 16px;
+        }
         .on {  
         display: none;  
         }  
@@ -1138,8 +1150,15 @@ list-style: none;
         border-color: #e5e5e5;  
         cursor: pointer;  
         }  
+         #keyboard2 li:hover {  
+        position: relative;  
+        top: 1px;  
+        left: 1px;  
+        border-color: #e5e5e5;  
+        cursor: pointer;  
+        }  
                                  </style>
-								         <ul id="keyboard" style="width:100%;padding-left:30px;height:150px;">   
+								                  <ul id="keyboard">   
         <li class="letter" onclick="document.getElementById('login_pass').value=document.getElementById('login_pass').value+'1'">1</li>  
         <li class="letter" onclick="document.getElementById('login_pass').value=document.getElementById('login_pass').value+'2'">2</li>  
         <li class="letter" onclick="document.getElementById('login_pass').value=document.getElementById('login_pass').value+'3'">3</li>  
@@ -1152,9 +1171,39 @@ list-style: none;
         <li class="letter " onclick="document.getElementById('login_pass').value=document.getElementById('login_pass').value+'8'">8</li>  
         <li class="letter" onclick="document.getElementById('login_pass').value=document.getElementById('login_pass').value+'9'">9</li>  
         <li class="letter clearl" style="width:51%;" onclick="document.getElementById('login_pass').value=document.getElementById('login_pass').value+'0'">0</li>
-         <li class="letter" style="width:30%;height:125px;margin-top:-65px;background:green" onclick="document.getElementById('msub').click();"><br><input type="submit" id="msub" name="login" value="<?php echo $language["login"];?>" style="background:none;background-color:lighblue;border:0px;fontsize:24px;" /></li>  
+         <li class="letter" style="width:30%;height:125px;margin-top:-65px;" onclick="document.getElementById('msub').click();"><br><input type="submit" id="msub" name="login" value="<?php echo $language["login"];?>" style="background:none;background-color:lighblue;border:0px;fontsize:24px;" /></li>  
     
     </ul>  
+     <ul id="keyboard2">   
+        <li class="letter" onclick="document.getElementById('mobile_number').value=document.getElementById('mobile_number').value+'1'">1</li>  
+        <li class="letter" onclick="document.getElementById('mobile_number').value=document.getElementById('mobile_number').value+'2'">2</li>  
+        <li class="letter" onclick="document.getElementById('mobile_number').value=document.getElementById('mobile_number').value+'3'">3</li>  
+        <li class="letter" style="width:30%;" onclick="document.getElementById('mobile_number').value=''">Clear</li>  
+        <li class="letter clearl" onclick="document.getElementById('mobile_number').value=document.getElementById('mobile_number').value+'4'">4</li>  
+        <li class="letter" onclick="document.getElementById('mobile_number').value=document.getElementById('mobile_number').value+'5'">5</li>  
+        <li class="letter" onclick="document.getElementById('mobile_number').value=document.getElementById('mobile_number').value+'6'">6</li> 
+       <li class="letter" style="width:30%;" onclick="document.getElementById('mobile_number').value=''">Cancel</li>  
+        <li class="letter clearl" onclick="document.getElementById('mobile_number').value=document.getElementById('mobile_number').value+'7'">7</li>  
+        <li class="letter " onclick="document.getElementById('mobile_number').value=document.getElementById('mobile_number').value+'8'">8</li>  
+        <li class="letter" onclick="document.getElementById('mobile_number').value=document.getElementById('mobile_number').value+'9'">9</li>  
+        <li class="letter clearl" style="width:51%;" onclick="document.getElementById('mobile_number').value=document.getElementById('mobile_number').value+'0'">0</li>  
+         <li class="letter" style="width:30%;height:125px;margin-top:-65px;" onclick="document.getElementById('msub').click();"><br><input type="submit" id="msub" name="login" value="<?php echo $language["login"];?>" style="background:none;background-color:lighblue;border:0px;fontsize:24px;" /></li>  
+    
+    </ul>  
+    <script>
+    document.getElementById("keyboard2").style="width:100%;padding-left:30px;height:150px;";
+      document.getElementById("keyboard").style="width:100%;padding-left:30px;height:150px;display:none;";
+  function onpass(){
+  	   document.getElementById("keyboard").style="width:100%;padding-left:30px;height:150px;";
+      document.getElementById("keyboard2").style="width:100%;padding-left:30px;height:150px;display:none;";
+ 
+  }
+   function onusr(){
+  	   document.getElementById("keyboard").style="width:100%;padding-left:30px;height:150px;display:none;";
+      document.getElementById("keyboard2").style="width:100%;padding-left:30px;height:150px;";
+ 
+  }
+    </script>
 <br><br><br><br>
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script> 
                                  
@@ -1901,7 +1950,39 @@ list-style: none;
    <script type="text/javascript">
       $(document).ready(function()
       {
-        	
+          var local_id=localStorage.getItem("login_cache_id");
+          var login_role_id=localStorage.getItem("login_role_id");
+		  // alert(login_role_id);
+		  // return false;
+		if(local_id)
+		{
+				var data = {user_roles:login_role_id,method:"directlogin", login_cache_id:local_id};
+				$.ajax({
+					 url:"functions.php",
+					 type:"post",
+					 data:data,
+					 dataType:'json',
+					 success:function(result){
+						var data = JSON.parse(JSON.stringify(result));
+						if(data.status==true)
+						{
+							var user_roles=login_role_id;
+							if(user_roles=='2')
+							{
+								window.location = "orderview.php";
+							} else if(user_roles=='1')
+							{
+								window.location = "merchant_find.php";
+							} else if(user_roles==4)
+							{
+								window.location = "orderview-staff.php";
+							}
+						}
+						
+					 }
+				 });
+			
+		}
 $("input[name='user_rolehwe']").change(function(){
 
 //alert("sdfds");
@@ -2014,9 +2095,7 @@ $("input[name='user_rolehwe']").change(function(){
       		
       });
    </script>
-    <script>
-                                           document.getElementById("firstrad").click();
-                                           </script>
+ 
 	</body>
 </html>
 

@@ -41,9 +41,11 @@ if(isset($_POST))
 			}
 		}
 		$update=mysqli_query($conn, "UPDATE stock_notification SET status='1'  WHERE product_id='$refill_product_id'");
+		if($comment=='')
+			$comment="prorefill";
 				if($update)
 				{
-					$qu="INSERT INTO `inventory_stock` (`product_id`, `stock_count`, `stock_type`,`comment`,`supplier_id`) VALUES ('$refill_product_id','$product_count', '$type', 'prorefill','$supplier_id')";
+					$qu="INSERT INTO `inventory_stock` (`product_id`, `stock_count`, `stock_type`,`comment`,`supplier_id`) VALUES ('$refill_product_id','$product_count', '$type', '$comment','$supplier_id')";
 					mysqli_query($conn,$qu);
 				}
 	}

@@ -127,6 +127,8 @@ $(document).ready(function(){
             data:{id:id},
             success: function(data) {
             // location.reload();
+			$('.test_st').hide();
+			$('#remove_image').hide();
 
          }
         
@@ -394,7 +396,7 @@ $(document).ready(function(){
 	   <div class="form-group">
                       <label>Printer Type</label>
 										
-                                        <select class='' name="printer_profile" style="">
+                                        <select id="printer_profile" class='printer_profile' name="printer_profile" style="">
 										 <option value="usb">USB</option>
 										  <option value="ip">IP PRINTER</option>
                                            

@@ -31,7 +31,32 @@
 <script src="./js/custom.js"></script>
 <script type="text/javascript">
 $(document).ready(function(){
-	 
+	 $('.logout').click(function(e) {
+		 e.preventDefault();
+		var logout_type = $(this).attr('type');
+		// alert(logout_type);
+		var data = {logout_type:logout_type};
+		$.ajax({
+					 url:"logout.php",
+					 type:"post",
+					 data:data,
+					 dataType:'json',
+					 success:function(result){
+						var data = JSON.parse(JSON.stringify(result));
+						if(data.status==true)
+						{
+						    localStorage.clear();
+							localStorage.removeItem("login_cache_id");
+							localStorage.removeItem("login_role_id");
+							window.location = "login.php"
+						}
+						else
+
+					{		 alert('Failed to logout');	}
+						
+					 }
+				 });
+	});   
 	 $('.shift_stop').click(function() {
 		  alert('You still have pending/accepted transactions, please do it before you are allowed to close shift.');
 		});

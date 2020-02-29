@@ -39,6 +39,7 @@ $profile_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM admins WHE
 				 <li><a href="user.php">Member</a></li>
 			</ul>
         </li>
+		<li><a href="rebate.php"><span class="hide-menu">Rebate</span></a></li>   
         <li><a href="merchants.php"><span class="hide-menu">Subscription</span></a></li>
         <li><a href="wallet.php"><span class="hide-menu">Wallet</span></a></li>
 		<li><a href="transaction.php"><span class="hide-menu">Transaction</span></a></li>
@@ -75,14 +76,6 @@ $profile_data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM admins WHE
 		<li><a href="charges.php"><span class="hide-menu">Withdraw Charges</span></a></li>
 		<li><a href="margin.php"><span class="hide-menu">Exchange Margin</span></a></li>
 		<li><a href="contact.php"><span class="hide-menu">Contact</span></a></li>
-		<li class="menu-item-has-children">
-			<a href="javascript:void(0);" class="ripple"><span class="color-color-scheme"><span class="hide-menu">Work Diary</span></span></a>
-			<ul class="list-unstyled sub-menu collapse" aria-expanded="true">
-				 <li><a href="work_diary.php?type=1">Daily</a></li>
-				 <li><a href="work_diary.php?type=2">Weekly</a></li>
-				 <li><a href="work_diary.php?type=3">Monthly</a></li>
-			</ul>
-        </li>
         <li><a href="logout.php"><span class="hide-menu">Log Out</span></a></li>    
     </ul>
     <!-- /.side-menu -->

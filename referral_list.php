@@ -1,6 +1,6 @@
 <?php 
 include("config.php");
-
+  
 if(!isset($_SESSION['login']))
 {
 	header("location:login.php");
@@ -27,7 +27,8 @@ $end_dt = $year . '-'. $month . '-31 23-59-59';
 
 
 $referral_id = isset($_SESSION['referral_id']) ? $_SESSION['referral_id'] : '0';
-$sql = "	
+
+ $sql = "	
 		SELECT first_ref, second_ref, third_ref, referred_by, SUM(IF((a.date >= '".$start_dt."') AND (a.date <= '".$end_dt."'), rate, 0)) MONTH, SUM(rate) rate, SUM(cf) cf
     	FROM (
         	SELECT a.referral_id first_ref, '' second_ref, '' third_ref, a.referred_by, subscription.subscription_rate * 0.05 rate, b.subscription_date DATE, subscription.subscription_rate * 0.002 cf
@@ -62,6 +63,7 @@ $sql = "
     	) a
     	GROUP BY first_ref, second_ref, third_ref
 			";
+
 $array_refs = array();
 if ($result=mysqli_query($conn,$sql))
   {

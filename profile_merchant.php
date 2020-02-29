@@ -91,9 +91,12 @@ if(isset($_POST['submit']))
 	// $spassword = addslashes($_POST['spassword']);
 	$print_ip_address = addslashes(isset($_POST['print_ip_address']) ? $_POST['print_ip_address'] : '');
 	$customer_print_ip_address = addslashes(isset($_POST['customer_print_ip_address']) ? $_POST['customer_print_ip_address'] : '');
-	$merchant_code = $bank_data['merchant_code'];
+	$customer_printer_profile=$_POST['customer_printer_profile'];
+	$customer_usb_name=$_POST['customer_usb_name'];
+	$merchant_code = $_POST['merchant_code'];
 	$guest_permission = addslashes(isset($_POST['guest_permission']) ? $_POST['guest_permission'] : '');
 	$pending_time = addslashes(isset($_POST['pending_time']) ? $_POST['pending_time'] : '');
+	$total_table=$_POST['total_table'];
 	$menu_type = addslashes(isset($_POST['menu_type']) ? $_POST['menu_type'] : '');
 	$pos_type = addslashes(isset($_POST['pos_type']) ? $_POST['pos_type'] : '');
 	if($merchant_code == ""){
@@ -224,9 +227,9 @@ if(isset($_POST['submit']))
 	if($flag == false)
 	{
 		 // $query="UPDATE users SET merchant_code='$merchant_code', merchant_url='$merchant_address', name='$realname',latitude='$latitude', longitude='$longitude', company='$company',register='$register',address='$address',gst='$gst', sst='$sst', print_ip_address='$print_ip_address', order_print_setting='$order_print_setting', facsimile_number='$facsimile',referred_by='$referred_by', business1='$business1', business2='$business2', name_card='$name_card',card_number='$card_number',expiry_date='$expiry_date',cvv='$cvv',bank_name='$bankname',name_accoundholder='$name_accoundholder',bank_ac_num='$ac_num',charge='$charge',nric_number='$nric_number',address_person='$address_person',hand_phone='$hand_phone',google_map='$google_map',doc_copy='$filename',company_doc='$filenamess',number_lock='$number_lock', handphone_number='$handphone_number', created_at='$date', account_type='$account_type', k_date='$k_date', k_lock='$k_lock', guest_permission='$guest_permission', pending_time='$pending_time',menu_type='$menu_type',discount='$discounts',mian_merchant='$main_merchant_id' WHERE id='".$_SESSION['login']."'";
-		    $qur="UPDATE users SET discounted_product='$discounted_product',setup_shop='$setup_shop',shop_open='$shop_open',printer_profile='$printer_profile',usb_name='$usb_name',printer_style='$printer_style',merchant_code='$merchant_code', merchant_url='$merchant_address', name='$realname',latitude='$latitude', longitude='$longitude', company='$company',register='$register',address='$address',gst='$gst', sst='$sst',sst_rate='$sst_rate', print_ip_address='$print_ip_address',customer_print_ip_address='$customer_print_ip_address',stock_inventory='$stock_inventory',cash_system='$cash_system',order_print_setting='$order_print_setting',order_print_live_setting='$order_print_live_setting', facsimile_number='$facsimile',referred_by='$referred_by', business1='$business1', business2='$business2', name_card='$name_card',card_number='$card_number',expiry_date='$expiry_date',cvv='$cvv',bank_name='$bankname',name_accoundholder='$name_accoundholder',bank_ac_num='$ac_num',charge='$charge',nric_number='$nric_number',address_person='$address_person',hand_phone='$hand_phone',google_map='$google_map',doc_copy='$filename',company_doc='$filenamess',number_lock='$number_lock', handphone_number='$handphone_number', created_at='$date', account_type='$account_type', k_date='$k_date', k_lock='$k_lock', guest_permission='$guest_permission', 
+		    $qur="UPDATE users SET customer_printer_profile='$customer_printer_profile',customer_usb_name='$customer_usb_name',discounted_product='$discounted_product',setup_shop='$setup_shop',shop_open='$shop_open',printer_profile='$printer_profile',usb_name='$usb_name',printer_style='$printer_style',merchant_code='$merchant_code', merchant_url='$merchant_address', name='$realname',latitude='$latitude', longitude='$longitude', company='$company',register='$register',address='$address',gst='$gst', sst='$sst',sst_rate='$sst_rate', print_ip_address='$print_ip_address',customer_print_ip_address='$customer_print_ip_address',stock_inventory='$stock_inventory',cash_system='$cash_system',order_print_setting='$order_print_setting',order_print_live_setting='$order_print_live_setting', facsimile_number='$facsimile',referred_by='$referred_by', business1='$business1', business2='$business2', name_card='$name_card',card_number='$card_number',expiry_date='$expiry_date',cvv='$cvv',bank_name='$bankname',name_accoundholder='$name_accoundholder',bank_ac_num='$ac_num',charge='$charge',nric_number='$nric_number',address_person='$address_person',hand_phone='$hand_phone',google_map='$google_map',doc_copy='$filename',company_doc='$filenamess',number_lock='$number_lock', handphone_number='$handphone_number', created_at='$date', account_type='$account_type', k_date='$k_date', k_lock='$k_lock', guest_permission='$guest_permission', 
 		pending_time='$pending_time',menu_type='$menu_type',pos_type='$pos_type',custom_message='$custom_message',
-		section_required='$section_required',table_required='$table_required',cash_check='$cash_check',credit_check='$credit_check',wallet_check='$wallet_check',boost_check='$boost_check',grab_check='$grab_check',spassword_need='$spassword_need',wechat_check='$wechat_check',touch_check='$touch_check',fpx_check='$fpx_check',discount='$discounts',mian_merchant='$main_merchant_id',location_order='$location_order',location_range='$location_range',process_password_need='$process_password_need' WHERE id='".$_SESSION['login']."'";
+		section_required='$section_required',table_required='$table_required',cash_check='$cash_check',credit_check='$credit_check',wallet_check='$wallet_check',boost_check='$boost_check',grab_check='$grab_check',spassword_need='$spassword_need',wechat_check='$wechat_check',touch_check='$touch_check',fpx_check='$fpx_check',discount='$discounts',mian_merchant='$main_merchant_id',location_order='$location_order',location_range='$location_range',process_password_need='$process_password_need',total_table='$total_table' WHERE id='".$_SESSION['login']."'";
 		// die;
 		$test_test = mysqli_query($conn,$qur);
 		$error .= "Successfully Updated profile Details.<br>";
@@ -244,6 +247,7 @@ else
 	$company = $bank_data['company'];
 	$register = $bank_data['register'];
 	$address = $bank_data['address'];
+	$total_table = $bank_data['total_table'];
 	$gst = $bank_data['gst'];
 	$sst = $bank_data['sst'];
 	$sst_rate = $bank_data['sst_rate'];
@@ -285,6 +289,9 @@ else
 	$print_ip_address = $bank_data['print_ip_address'];
 	// $spassword = $bank_data['spassword'];
 	$customer_print_ip_address = $bank_data['customer_print_ip_address'];
+	$customer_printer_profile = $bank_data['customer_printer_profile'];
+	$customer_usb_name = $bank_data['customer_usb_name'];
+	
     $merchant_address = $bank_data['merchant_url'];
 	$stock_inventory = $bank_data['stock_inventory'];
 	$cash_system = $bank_data['cash_system'];
@@ -512,6 +519,24 @@ if(isset($_POST['method'])){
 										<label>Printer IP Address</label>
 										<input type="text" name="print_ip_address" class="form-control" value="<?php if(isset($print_ip_address)){ echo $print_ip_address; }?>">
 									</div>
+									  <div class="form-group">
+                                        <label>Customer Printer Type <?php  $customer_printer_profile=$bank_data['customer_printer_profile']; ?></label>
+										
+                                        <select class='' name="customer_printer_profile" style="">
+										  <option <?php if($customer_printer_profile == 'ip') echo 'selected'; ?> value="ip">IP PRINTER</option>
+                                            <option <?php if($customer_printer_profile == 'usb') echo 'selected'; ?> value="usb">USB</option>
+                                          
+                                        </select>
+                                    </div>
+									<div class="form-group">
+										<label>Customer IP Address</label>
+										<input type="text" name="customer_print_ip_address" class="form-control" value="<?php if(isset($customer_print_ip_address)){ echo $customer_print_ip_address; }?>">
+									</div> 
+						<div class="form-group">
+										<label>Customer USB Sharing Name </label>
+										<input type="text" name="customer_usb_name" class="form-control" value="<?php if(isset($bank_data['customer_usb_name'])){ echo $bank_data['customer_usb_name']; }?>">
+									   
+									</div> 									
 										<div class="form-group">
 										<label>Order Process Password </label><br>
 										<input class="process_password_need" type="checkbox" name="process_password_need" <?php if($process_password_need == '1') echo "checked='checked'";?>>Order Process Password <br>
@@ -524,10 +549,7 @@ if(isset($_POST['method'])){
 										<label>Key In Special Password</label>
 										<input type="password" name="spassword" class="form-control" value="<?php if(isset($spassword)){ echo $spassword; }?>">
 									</div!-->
-									<div class="form-group">
-										<label>Customer IP Address</label>
-										<input type="text" name="customer_print_ip_address" class="form-control" value="<?php if(isset($customer_print_ip_address)){ echo $customer_print_ip_address; }?>">
-									</div>
+									
 										<div class="form-group">
 										<label>Choose business partner/ main merchant<br></label>
 										<!--<input type="text" name="main_merchant" class="form-control" value=""> -->
@@ -698,12 +720,17 @@ if(isset($_POST['method'])){
 										<label>Pending time(minute)</label><br>
 										<input type="number" name="pending_time" class="form-control" value="<?php if(isset($pending_time)){ echo $pending_time; }?>" >
 									</div>
+									<div class="form-group">
+										<label>Total Table</label><br>
+										<input type="number" name="total_table" class="form-control" value="<?php if(isset($total_table)){ echo $total_table; }?>" >
+									</div>  
 										<div class="form-group">
 										<label>Printer Style</label><br>
 										      <input type="radio" name="printer_style" value="normal" <?php if($printer_style=="normal"){echo "checked";} ?>> Normal<br>
 											  <input type="radio" name="printer_style" value="section" <?php if($printer_style=="section"){echo "checked";} ?>> Section<br>
 											  <input type="radio" name="printer_style" value="product" <?php if($printer_style=="product"){echo "checked";} ?>> Product  <br/>
-											  <input type="radio" name="printer_style" value="combo" <?php if($printer_style=="combo"){echo "checked";} ?>> Combo( Normal + Product)  
+											  <input type="radio" name="printer_style" value="combo" <?php if($printer_style=="combo"){echo "checked";} ?>> Combo( Normal + Product)  </br>
+											  <input type="radio" name="printer_style" value="combosplit" <?php if($printer_style=="combosplit"){echo "checked";} ?>> Super Combo(normal+product bas cut with ip)  </br>
 									</div> 
 									<div class="form-group">
 										<label>K1/K2 Type</label><br>
@@ -728,7 +755,7 @@ if(isset($_POST['method'])){
                                    <div class="form-group">
                                         <label>Menu Type</label>
                                         <select class='menu_type' name="menu_type" style="">
-                                            <!--option <?php if($menu_type == '1') echo 'selected'; ?> value="1">Layout 1</option!-->
+                                            <option <?php if($menu_type == '1') echo 'selected'; ?> value="1">Layout 1</option>
                                             <option <?php if($menu_type == '2') echo 'selected'; ?> value="2">Layout 2</option>
                                         </select>
                                     </div>   

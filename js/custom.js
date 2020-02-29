@@ -67,6 +67,7 @@ $(document).ready(function(){
     var unPrintedOrders = [];
     setInterval(function() {
         unPrintedOrders = [];
+		
         var data = {id: $(".user_id").val(), method: "getUnPrintedOrder2"};
 		// alert($(".user_id").val());
         $.ajax( {
@@ -99,10 +100,11 @@ $(document).ready(function(){
                     data: {id: order['id'], printed: 1, method : 'updatePrinted'},
                     success: function (data) {
                         console.log(data);
-                        printOrder(order)
+                       
                     }
                 });
             }
+			 printOrder(order);
         }
     }
 

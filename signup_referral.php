@@ -9,7 +9,8 @@ function gw_send_sms($user,$pass,$sms_from,$sms_to,$sms_msg){
     $query_string = "api.aspx?apiusername=".$user."&apipassword=".$pass;
     $query_string .= "&senderid=".rawurlencode($sms_from)."&mobileno=".rawurlencode($sms_to);
     $query_string .= "&message=".rawurlencode(stripslashes($sms_msg)) . "&languagetype=1";        
-    $url = "http://gateway.onewaysms.com.au:10001/".$query_string;       
+     $url = "http://gateway.onewaysms.com.au:10001/".$query_string;     
+  
     $fd = @implode ('', file ($url));      
     if ($fd){                       
 	    if ($fd > 0) {
@@ -26,27 +27,38 @@ function gw_send_sms($user,$pass,$sms_from,$sms_to,$sms_msg){
     }           
     return $ok;  
 }  
-if(isset($_GET['code']) && isset($_GET['id']) && is_numeric($_GET['id']))
-{
-	$code = $_GET['code']; $user_id = $_GET['id'];
-	$if_exists = mysqli_num_rows(mysqli_query($conn,"SELECT * FROM users WHERE verification_code='$code' AND id='$user_id'"));
-	if($if_exists > 0)
-	{
-		mysqli_query($conn, "UPDATE users SET verification_code='', isLocked='0' WHERE id='$user_id'");
-		$error = "Account Has Been successfully Verified.<br>";
-	}
-	else
-	{
-		$error = "Account Could Not Be Verified.<br>";
-	}	
-}
+// if(isset($_GET['code']) && isset($_GET['id']) && is_numeric($_GET['id']))
+// {
+	// $code = $_GET['code']; $user_id = $_GET['id'];
+	// $if_exists = mysqli_num_rows(mysqli_query($conn,"SELECT * FROM users WHERE verification_code='$code' AND id='$user_id'"));
+	// if($if_exists > 0)
+	// {
+		// mysqli_query($conn, "UPDATE users SET verification_code='', isLocked='0' WHERE id='$user_id'");
+		// $error = "Account Has Been successfully Verified.<br>";
+	// }
+	// else
+	// {
+		// $error = "Account Could Not Be Verified.<br>";
+	// }	
+// }
 
 if(isset($_POST['signup']))
 {
- 
+    // print_R($_POST);
+	// die;
 	$name = addslashes($_POST['name']);
 	$user_role = addslashes($_POST['user_role']);
 	$email = addslashes($_POST['email']);
+	$dob = $_POST['dob'];
+	$already_exit="n";
+	if(!isset($dob))
+	{
+		// $date = explode('-', $dob);
+		
+		// $time = mktime(0,0,0,$date[0],$date[1],$date[2]);
+		// $mysqldate = date('Y-m-d H:i:s',$time);
+		$dob="0000-00-00";
+	}
 	$password = addslashes($_POST['password']);
 	$security = addslashes($_POST['security']);
 	$questions = addslashes($_POST['questions']);
@@ -60,14 +72,17 @@ if(isset($_POST['signup']))
 	{
 		$error .= "Name cannot be Empty.<br>";
 	}
-	
+	// echo $cm;
 	$already_exists1 = mysqli_num_rows(mysqli_query($conn, "SELECT * FROM users WHERE mobile_number='$cm' && user_roles= '$user_role'"));
 
 	 if($already_exists1 > 0)
 	 {
 		 $error .= "Mobile Number Already Exists.<br>";
+		 $already_exit="y";
+		 
 	 }
-
+     // echo $error;
+	 // die;
 	if($error == "")
 	{
 		$code = uniqid();
@@ -89,24 +104,28 @@ if(isset($_POST['signup']))
 	
 		$reffered_by= $_POST['referral_id'];
 	    
-	    
-	    mysqli_query($conn, "INSERT INTO users SET name='$name',user_roles='$user_role', password='$password', joined='".time()."', isLocked='0', verification_code='$code', referral_id='$ref',referred_by='$reffered_by',security_answer= '$security',security_questions= '$questions',fund_password='$fund_pass',email='$email',mobile_number='$cm', created_at='date('Y-m-d')'");
-		//echo "Sending to one way sms " . gw_send_sms("APIHKXVL33N5E", "APIHKXVL33N5EHKXVL", "9787136232", "$cm", "Verify Your Account on koofamilies $current_url?code=$code&id=$user_id");
-		header('Location:login.php');
+	     $q="INSERT INTO users SET isLocked='1',dob='$dob',name='$name',user_roles='$user_role', password='$password', joined='".time()."', verification_code='$code', referral_id='$ref',referred_by='$reffered_by',security_answer= '$security',security_questions= '$questions',fund_password='$fund_pass',email='$email',mobile_number='$cm'";
+		
+	    mysqli_query($conn,$q); 
 		$user_id = mysqli_insert_id($conn);
-		$current_url = "http://".$_SERVER['HTTP_HOST']."".$_SERVER['REQUEST_URI'];
-
+		 $current_url = "https://".$_SERVER['HTTP_HOST'].""."/login.php";
+		// die;
+		// $signup_url="https://www.koofamilies.com/login.php";  
+		// echo "Sending to one way sms " . gw_send_sms("APIHKXVL33N5E", "APIHKXVL33N5EHKXVL", "9787136232", "$cm", "Verify Your Account on koofamilies https://koofamilies.com/login.php?code=$code&id=$user_id");
+		   
+	   	 Print("Sending to one way sms .This link is only valid for 10minutes" . gw_send_sms("APIHKXVL33N5E", "APIHKXVL33N5EHKXVL", "9787136232", "$cm", "Verify Your Account on koofamilies $current_url?code=$code&id=$user_id"));
 		$subject = "Verify Your Account | koofamilies";
 
 		$message = "
 		<html>
 		<head>
-		<title>Verify Your Account | koofamilies</title>
+		<title>Verify Your Account | koofamilies</title>.
+		
 		</head>
 		<body>
 		<h3>Verify Your Account on koofamilies</h3>
 		<p>You Can Verify Your Account By Visiting The Following Link :</p>
-		<p style='text-align:center'><a href='$current_url?code=$code&id=$user_id'>Verify</a></p>
+		<p style='text-align:center'><a href='https://www.koofamilies.com/login.php?code=$code&id=$user_id'>Verify</a></p>
 		</body>
 		</html>
 		";
@@ -118,7 +137,7 @@ if(isset($_POST['signup']))
 		// More headers
 		$headers .= 'From: <info@kooexchange.com>' . "\r\n";
 		
-		$error = "Registered Successfully, Verification Mobile Number has been sent to your Mobile Number.";
+		$error = "Registered Successfully, Verification Link has been sent to your Mobile Number.";
         
         
 	}
@@ -127,149 +146,12 @@ if(isset($_POST['signup']))
 	
 }
 
-if(isset($_POST['login']))
-{
-	$mobile_number = addslashes($_POST['mobile_number']);
-	$password = addslashes($_POST['password']);
-	$countrycode = addslashes($_POST['countrycode']);
-	$user_role = addslashes($_POST['user_role']);
-	 $cm =	$countrycode.''.$mobile_number;
-	$error = "";
-	
-	if($mobile_number == "" )
-	{
-		$error .= "Mobile Number is not Valid.<br>";
-	}
-	
-	if(strlen($password) >= 15 || strlen($password) <= 7)
-	{
-		$error .= "Password must be between 8 and 15.<br>";
-	}
-	
-	if($error == "")
-	{
-		$user_row = mysqli_fetch_assoc(mysqli_query($conn, "SELECT id,isLocked,referral_id FROM users WHERE mobile_number='$cm'AND password='$password' AND user_roles = '$user_role'"));
-		$id = $user_row['id'];
-		$referral_id = $user_row['referral_id'];
-		if($id)
-		{
-		    if($user_row['isLocked'] == "0")
-    		{
-				$_SESSION['login'] = $id;
-				$_SESSION['referral_id'] = $referral_id;
-		    	header("location:dashboard.php");
-    		}
-    		else
-    		{
-    			$error .= "Your account has been Blocked by Administrator.<br>";
-    		}
-		}
-		else
-		{
-			$error .= "Authentication failed. You entered an incorrect username or password.<br>";
-		}
-	}
-}
-
-if(isset($_POST['forget']))
-{
-	$mobile_number = addslashes($_POST['mobile_number']);
-	$countrycode = addslashes($_POST['countrycode']);
-	$cm =	$countrycode.''.$mobile_number;
-	$user_role = addslashes($_POST['user_role']);
-	//$email = addslashes($_POST['email']);	
-	$error = "";
-	if($mobile_number == "" )
-	{
-		$error .= "Mobile Number is not Valid.<br>";
-	}
-	
-	//~ if($email == "" || filter_var($email, FILTER_VALIDATE_EMAIL) === false)
-	//~ {
-		//~ $error .= "Email is not Valid.<br>";
-	//~ }
-	$data = mysqli_query($conn, "SELECT  password,isLocked FROM users WHERE mobile_number='$cm' AND user_roles = '$user_role' ");
-	//~ $data = mysqli_query($conn, "SELECT password,isLocked FROM users WHERE email='$email'");
-	$count = mysqli_num_rows($data);
-	if($count == 0)
-	{
-		$error .= "Account does not exists in our Database.<br>";
-	}
-	
-	$row = mysqli_fetch_assoc($data);      
-	$lock_status = $row['isLocked'];
-	$password = $row['password'];
-	
-	if($lock_status == 1)
-	{
-		$error .= "Your account is blocked by Admin.<br>";
-	}
-	
-	if($error == "")
-	{
-		$rand =mt_rand();
-		$forgot_url = "http://".$_SERVER['HTTP_HOST']."/demo/forgot_password.php?rand=".$rand."&mn=".$cm;
-		 mysqli_query($conn, "UPDATE users SET rand_num='$rand' WHERE mobile_number='$cm' AND user_roles = '$user_role' ");
-
-		Print("Sending to one way sms " . gw_send_sms("APIHKXVL33N5E", "APIHKXVL33N5EHKXVL", "9787136232", "$cm", "Password for your Account ($cm) : $forgot_url"));
-		
-
-		
-		
-	}
-}
-
-if(isset($_POST['forget_fund']))
-{
-	
-	$mobile_number = addslashes($_POST['mobile_number']);
-	$countrycode = addslashes($_POST['countrycode']);
-	$cm =	$countrycode.''.$mobile_number;
-	//$email = addslashes($_POST['email']);	
-	$error = "";
-	if($mobile_number == "" )
-	{
-		$error .= "Mobile Number is not Valid.<br>";
-	}
-	
-	//~ if($email == "" || filter_var($email, FILTER_VALIDATE_EMAIL) === false)
-	//~ {
-		//~ $error .= "Email is not Valid.<br>";
-	//~ }
-	$data = mysqli_query($conn, "SELECT  fund_password,isLocked FROM users WHERE mobile_number='$cm'");
-	
-	//~ $data = mysqli_query($conn, "SELECT password,isLocked FROM users WHERE email='$email'");
-	$count = mysqli_num_rows($data);
-	if($count == 0)
-	{
-		$error .= "Account does not exists in our Database.<br>";
-	}
-	
-	$row = mysqli_fetch_assoc($data);
-	
-	$lock_status = $row['isLocked'];
-	$password = $row['fund_password'];
-	
-	if($lock_status == 1)
-	{
-		$error .= "Your account is blocked by Admin.<br>";
-	}
-	
-	if($error == "")
-	{
-		
-		Print("Sending to one way sms " . gw_send_sms("APIHKXVL33N5E", "APIHKXVL33N5EHKXVL", "9787136232", "$cm", "Fund Password for your Account ($cm) : $password"));
-		
-		
-		
-	}
-}
 ?>
 <!DOCTYPE html>
 <html>
 
 <head>
-    <title>Login | koofamilies</title>
+    <title>Add Member | koofamilies</title>
     <!--Custom Theme files-->
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -289,6 +171,8 @@ if(isset($_POST['forget_fund']))
         <!-- jquery validation plugin //-->
         
 <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
 
 
         
@@ -352,7 +236,21 @@ if(isset($_POST['forget_fund']))
                         </ul>
                         <div class="resp-tabs-container">
                             <div class="tab-1 resp-tab-content" aria-labelledby="tab_item-1">
-
+								<?php
+								if(isset($error) && $error != "")
+								{ 
+									echo "<div class='alert alert-info'>$error</div>";
+									if($already_exit=="y")
+									{
+										?>
+										<span style="margin-left:2%;"class="btn btn-primary" id="resend_link" user_mobile='<?php echo $cm;?>'>Resend Link</span> 
+									<div style="clear:both;"></div>
+									</br>
+									<span class='alert alert-info' id="resend_link_label" style="display:none;">Resend Link Shared to mobile Number</span>
+									<?php }
+								}
+								?>  
+								<br>
                                 <form method="post" id="koosignup">
 									<div class="login-top sign-top">
 										<input type="radio" name="user_role" value="1" checked> Members
@@ -584,7 +482,14 @@ if(isset($_POST['forget_fund']))
 	                                    <input type="text" class="mobile_number" placeholder="Telephone Number " name="mobile_number" id="reg_mobnum" /> 
 	                                     
 	                                    <input type="password" class="password" id="Password"  placeholder="Password" name="password"  />
+										<div class="clear"></div>
+										 <i  onclick="myFunction2()" id="eye_slash_2" class="fa fa-eye-slash" aria-hidden="true"></i>
+										 <span onclick="myFunction2()" id="eye_pass_2"> Show Password </span>
 	                                    <input type="password" name="cpassword" id="cpassword"  placeholder="Confirm Password" class="col-md-9" >
+										
+										<div class="clear"></div>
+										 <i  onclick="myFunction3()" id="eye_slash_3" class="fa fa-eye-slash" aria-hidden="true"></i>
+										 <span onclick="myFunction3()" id="eye_pass_3"> Show Password </span>
 	                              		<span id="message"></span> 
 	                                    <input type="text" class="referral_id" placeholder="Referral Id" name="referral_id" value="<?php echo $_GET['invitation_id'];?>" />    
                                        	<div class="clear"></div> 
@@ -597,8 +502,15 @@ if(isset($_POST['forget_fund']))
 											<option value="Where would you like to visit again?">Where would you like to visit again?</option>
 										</select>
 										<input type="text" class="referral_id" placeholder="Security Answers" name="security" />-->
-										<input value="<?php isset($email) ? $email : ""; ?>" type="email" class="email" placeholder="Email" name="email"  />                       <input type="hidden" name="signup" value="signup"/>
-                                        <div class="login-bottom">
+										<input value="<?php isset($email) ? $email : ""; ?>" type="email" class="email" placeholder="Email" name="email"  />                       
+										<input type="hidden" name="signup" value="signup"/>
+                                        <label>Date of Birth: </label>
+										<div >
+											<!-- <input class="form-control" id="row-col" name="dob" type="hidden" readonly /> -->
+											<input type="text" name="dob" value="" id="row-col"/>
+											<!-- <span class="input-group-addon"><i class="glyphicon glyphicon-calendar"></i></span> -->
+										</div>
+										<div class="login-bottom">
 	                                        <div class="submit">
 	                                            <input type="submit" value="REGISTER" style="padding:14px;" />
 	                                        </div>
@@ -631,11 +543,101 @@ if(isset($_POST['forget_fund']))
 }
 </style>
 <script src="https://code.jquery.com/jquery-1.9.1.js"></script>
-
-<script src="https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+<script type="text/javascript" src="//ajax.aspnetcdn.com/ajax/jquery.ui/1.8.10/jquery-ui.min.js"></script>
         <script type="text/javascript" src="https://ajax.microsoft.com/ajax/jquery.validate/1.7/jquery.validate.js"></script>
     <script src="js/easyResponsiveTabs.js" type="text/javascript"></script>
+	<script src="js/bootstrap-birthday.js" type="text/javascript"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/js/bootstrap-datepicker.js"></script>
 
+<link rel="stylesheet" href="//code.jquery.com/ui/1.8.10/themes/smoothness/jquery-ui.css" type="text/css">
+<script>
+$(document).ready(function () {
+	$('#row-col').bootstrapBirthday({
+      widget: {
+        wrapper: {
+          tag: 'div',
+          class: 'row'
+        },
+        wrapperYear: {
+          use: true,
+          tag: 'div',
+          class: 'col-sm-4'
+        },
+        wrapperMonth: {
+          use: true,
+          tag: 'div',
+          class: 'col-sm-4'
+        },
+        wrapperDay: {
+          use: true,
+          tag: 'div',
+          class: 'col-sm-4'
+        },
+        selectYear: {
+          name: 'birthday[year]',
+          class: 'form-control'
+        },
+        selectMonth: {
+          name: 'birthday[month]',
+          class: 'form-control'
+        },
+        selectDay: {
+          name: 'birthday[day]',
+          class: 'form-control'
+        }
+      }
+    });
+
+});
+</script>
+   <script>
+function myFunction() {
+  var x = document.getElementById("login_pass");
+  if (x.type === "password") {
+    x.type = "text";
+	    $("#eye_pass").html('Hide Password');
+			 $('#eye_slash').removeClass( "fa-eye-slash" );
+            $('#eye_slash').addClass( "fa-eye" );
+			
+  } else {
+    x.type = "password";
+	 $("#eye_pass").html('Show Password');
+	  $('#eye_slash').addClass( "fa-eye-slash" );
+            $('#eye_slash').removeClass( "fa-eye" );
+  }
+}
+function myFunction2() {
+  var x = document.getElementById("Password");
+  if (x.type === "password") {
+    x.type = "text";
+	    $("#eye_pass_2").html('Hide Password');
+			 $('#eye_slash_2').removeClass( "fa-eye-slash" );
+            $('#eye_slash_2').addClass( "fa-eye" );
+			
+  } else {
+    x.type = "password";
+	 $("#eye_pass_2").html('Show Password');
+	  $('#eye_slash_2').addClass( "fa-eye-slash" );
+            $('#eye_slash_2').removeClass( "fa-eye" );
+  }
+}
+function myFunction3() {
+  var x = document.getElementById("cpassword");
+  if (x.type === "password") {
+    x.type = "text";
+	    $("#eye_pass_3").html('Hide Password');
+			 $('#eye_slash_3').removeClass( "fa-eye-slash" );
+            $('#eye_slash_3').addClass( "fa-eye" );
+			
+  } else {
+    x.type = "password";
+	 $("#eye_pass_3").html('Show Password');
+	  $('#eye_slash_3').addClass( "fa-eye-slash" );
+            $('#eye_slash_3').removeClass( "fa-eye" );
+  }
+}
+</script>
     <script type="text/javascript">
     $(document).ready(function()
 
@@ -649,7 +651,7 @@ jQuery.validator.addMethod("phoneUS", function(phone_number, element) {
 		phone_number.match(/^((\+[1-9]{1,4}[ \-]*)|(\([0-9]{2,3}\)[ \-]*)|([0-9]{2,4})[ \-]*)*?[0-9]{3,4}?[ \-]*[0-9]{3,4}?$/);
 }, "Please specify a valid telephone number");
 $.validator.addMethod('mypassword', function(value, element) {
-        return this.optional(element) || (value.match(/[a-zA-Z]/) && value.match(/[0-9]/));
+        return this.optional(element) || (value.match(/[a-zA-Z]/) || value.match(/[0-9]/));
     },
     'Password must contain at least one numeric and one alphabetic character.');
    var theForm = $("#koosignup");
@@ -709,7 +711,7 @@ minlength: 1
 
 required: true,
 mypassword: true,
-minlength: 8
+minlength: 6
 
 },
 
@@ -765,7 +767,7 @@ remote: "The telephone number is already in use by another user!"
 
 required: "The password field is mandatory!",
 
-minlength: "Please enter a password at least 8 characters!"
+minlength: "Please enter a password at least 6 characters!"
 
 },
 
@@ -803,9 +805,33 @@ if(theForm.valid() ) {
         		});
     </script>  
         <script>  
-$(document).ready(function(){ 
-	 
-
+$(document).ready(function(){
+		$('#resend_link').click(function(e) {
+			var user_mobile = $(this).attr("user_mobile");
+			data = {user_mobile:user_mobile, method: "resendlink"};
+			 $.ajax( {
+                                url : "functions.php",
+                                type:"post",
+                                data : data,
+                                dataType : 'json',
+                                success : function(response) {
+									var data = JSON.parse(JSON.stringify(response));
+									if(data.status)
+									{
+										$('#resend_link_label').show(); 
+									}
+									else
+									{
+										alert(data.msg);
+									}
+                                },
+                                error: function(data){
+                                    console.log(data);
+                                }
+                });
+		});
+	  //$( "#datepicker" ).datepicker({  maxDate: new Date() });    
+     
 
       $("input[name='user_role']").on("click", function() {
            

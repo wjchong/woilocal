@@ -1,4 +1,6 @@
+
 <?php
+
 include_once("config.php");
 function clear(){
 	$conn = $GLOBALS['conn'];
@@ -30,16 +32,16 @@ function clear(){
 $date = date('Y-m-d H:i:s');
 $dateutc=strtotime($date);
 $user_id =  $_SESSION['login'];;
-if(isset($_GET['s']))
+if(isset($POST['logout_type']))
 {
-	if($_GET['s']=="shop_close")
+	if($POST['logout_type']=="shop_close")
 	{
 		$id=$_SESSION['login'];
 	   $sql = "UPDATE users SET shop_open = '0',active_login='n' WHERE id = '$id'";	
 	   mysqli_query($conn,$sql);
 	  
 	}
-	if($_GET['s']=="shift_close")
+	if($POST['logout_type']=="shift_close")
 	{
 		$id=$_SESSION['login'];
 	   $sql2 = "UPDATE user_login SET logout_time = '$dateutc',is_active='n' WHERE user_id = '$id' and is_active='y'";	
@@ -61,12 +63,13 @@ if(clear()){
 	$sql_staff_activity_logs = "UPDATE staff_activity_logs SET logout_time = '$logout_time' , active = '0' WHERE login_date = '$login_date' AND user_id = '$user_id' AND active = 1";
 	mysqli_query($conn,$sql_staff_activity_logs);
 	*/
-	
-	header('location: login.php');
+	 $res = array('status'=>true);
 
 }else{
-	echo "Error occuried. Please try again later.";
+	// echo "Error occuried. Please try again later.";
+ $res = array('status'=>false);
 }
-
-
+ echo json_encode($res);
+	die;
 ?>
+

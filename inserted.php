@@ -70,16 +70,17 @@ if (isset($orders->orders)) {
                 "`quantity` = '{$order->quantity}', `amount` = '{$order->amount}', `wallet` = '{$order->wallet}', `created_on` = '{$order->created_on}', " .
                 "`location` = '{$order->location}', `table_type` = '{$order->table_type}', `status` = '{$order->status}', `remark` = '{$order->remark}', " .
                 "`invoice_no` = '{$order->invoice_no}', `popup` = '{$order->popup}', `product_code` = '{$order->product_code}',`status_change_date` = '{$order->status_change_date}', " .
-                "`section_type` = '{$order->section_type}',`varient_type` = '{$order->varient_type}',`payment_image` = '{$order->payment_image}',`total_cart_amount` = '{$order->total_cart_amount}' WHERE `order_list`.`id` = ##"; 
+                "`section_type` = '{$order->section_type}',`varient_type` = '{$order->varient_type}' WHERE `order_list`.`id` = ##"; 
     
            $sql = "INSERT INTO `order_list` (`id`, `product_id`, `user_id`, `merchant_id`, `quantity`, `amount`, `wallet`, `created_on`, `location`, " .
-                "`table_type`, `status`, `remark`, `invoice_no`, `popup`, `product_code`, `status_change_date`, `section_type`,`varient_type`,`order_place`,`user_name`,`user_mobile`,`staff_id`,`rebate_applicable`,`rebate_amount`,`total_rebate_amount`,`rebate_credited`,`rebate_credited_date`,`total_cart_amount`,`aftersst_amount`,`wallet_paid_amount`,`prepaid`) " .
+                "`table_type`, `status`, `remark`, `invoice_no`, `popup`, `product_code`, `status_change_date`, `section_type`,`varient_type`,`order_place`,`user_name`,`user_mobile`,`wallet_paid_amount`,`discount_amount`,`membership_discount`,`remark_extra`,`membership_plan_id`,`total_cart_amount`) " .
                 "VALUES (NULL, '{$order->product_id}', '{$order->user_id}', '{$order->merchant_id}', '{$order->quantity}', '{$order->amount}', " .
-                "'{$order->wallet}', '{$order->created_on}', '{$order->location}', '{$order->table_type}', '{$order->status}', " .
-                "'{$order->remark}', '{$order->invoice_no}', '{$order->popup}', '{$order->product_code}', '{$order->status_change_date}', '{$order->section_type}','{$order->varient_type}','{$order->order_place}','{$order->user_name}','{$order->user_mobile}','{$order->staff_id}','{$order->rebate_applicable}','{$order->rebate_amount}','{$order->total_rebate_amount}','{$order->rebate_credited}','{$order->rebate_credited_date}','{$order->total_cart_amount}','{$order->aftersst_amount}','{$order->wallet_paid_amount}','{$order->prepaid}')";
+                "'{$order->wallet}', '{$order->created_on}', '{$order->location}', '{$order->table_type}', '{$order->status}', " .  
+                "'{$order->remark}', '{$order->invoice_no}', '{$order->popup}', '{$order->product_code}', '{$order->status_change_date}', '{$order->section_type}','{$order->varient_type}','{$order->order_place}','{$order->user_name}','{$order->user_mobile}','{$order->wallet_paid_amount}','{$order->discount_amount}','{$order->membership_discount}',
+				'{$order->remark_extra}','{$order->membership_plan_id}','{$order->total_cart_amount}')";     
 
-           
-            $found = 0;
+      
+            $found = 0;   
             while ($row = mysqli_fetch_assoc($query)) {
                 if (strval($row['created_on']) == strval($order->created_on) &&
                     strval($row['invoice_no']) == strval($order->invoice_no)

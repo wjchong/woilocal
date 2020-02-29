@@ -3,6 +3,10 @@
 session_start();
 include("config.php");
 $current_time = date('Y-m-d H:i:s');
+if($_SESSION['login']=='')
+{
+	include("dlogin.php");
+}
 function ceiling($number, $significance = 1)
 								{
 									return ( is_numeric($number) && is_numeric($significance) ) ? (ceil(round($number/$significance))*$significance) : false;
@@ -17,6 +21,7 @@ function checkSession(){
         return false;
     }
 }
+
 // if(!isset($loginidset) || empty($loginidset))
 // {
     // header("location:logout.php");

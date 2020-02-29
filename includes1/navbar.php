@@ -63,13 +63,13 @@ $pending_count=mysqli_num_rows($result1);
 <?php if(isset($profile_data['user_roles']) && $profile_data['user_roles'] ==  '2'){?>
 
          <li class="home_screen">
-       <a href="pos.php" style="cursor:pointer; font-size: 18px;height: 74px;margin-top: 7%;color: white;margin-left: -40%;background:#4387fd;border: none;" class="btn btn-primary">Order</a>
+       <a href="pos.php" style="cursor:pointer; font-size: 18px;height: 74px;margin-top: 7%;color: white;margin-left: -14%;background:#4387fd;border: none;" class="btn btn-primary">Order</a>
 		</li>
     <?php }?>
 	<?php if(isset($profile_data['user_roles']) && $profile_data['user_roles'] ==  '5'){?>
 
          <li class="home_screen">
-       <a href="pos.php" style="cursor:pointer; font-size: 18px;height: 74px;margin-top: 7%;color: white;margin-left: -40%;background:#4387fd;border: none;" class="btn btn-primary">Order</a>
+       <a href="pos.php" style="cursor:pointer; font-size: 18px;height: 74px;margin-top: 7%;color: white;margin-left: -14%;background:#4387fd;border: none;" class="btn btn-primary">Order</a>
 		</li>
     <?php }?>
 	<!--new-->
@@ -117,13 +117,41 @@ $pending_count=mysqli_num_rows($result1);
 <li class="dropdown">
   <a class="dropdown-toggle" style="cursor:pointer" data-toggle="dropdown"><img src="images/wallet.png" style="width:40px"></a>
   <?php
-  $balance = isset($_SESSION['login']) ? mysqli_fetch_assoc(mysqli_query($conn, "SELECT user_roles,setup_shop,balance_usd,balance_inr,balance_myr FROM users WHERE id='".$_SESSION['login']."'")) : '';
-  ?>
+  $balance = isset($_SESSION['login']) ? mysqli_fetch_assoc(mysqli_query($conn, "SELECT id,user_roles,setup_shop,balance_usd,balance_inr,balance_myr FROM users WHERE id='".$_SESSION['login']."'")) : '';
+	$a_user_id=$balance['id'];
+ ?>
   <ul class="dropdown-menu" style="padding:10px 10px;">
 	<table class="table table-striped">
-	    <tr><th>MYR</th><td><?php if( isset($balance['balance_myr']) ) { echo $balance['balance_myr'];} ?></td></tr>
-		<tr><th>CF</th><td><?php if( isset($balance['balance_usd']) ) {echo $balance['balance_usd'];} ?></td></tr>
-		<tr><th>Koo Coin</th><td><?php if(isset($balance['balance_inr'])){echo $balance['balance_inr'];} ?></td></tr>
+	  <?php if( $balance['balance_myr']) {?>
+	    <tr><th>MYR</th>
+		<td><a href="transaction_history.php?coin_type=MYR">
+		<?php if( $balance['balance_myr']) { echo number_format($balance['balance_myr'],2);} else{ echo "0.00";} ?></a></td>
+		</tr>
+		<?php } if( $balance['balance_usd']) { ?>
+		<tr><th>CF</th>
+		<td><a href="transaction_history.php?coin_type=CF">
+		<?php if($balance['balance_usd']) { echo number_format($balance['balance_usd'],2);}else{ echo "0.00";} ?></a></td>
+		   
+		</tr>
+		<?php  } if( $balance['balance_inr']) {?>
+		<tr><th>Koo Coin</th>
+		<td><a href="transaction_history.php?coin_type=INR">
+		<?php if( $balance['balance_inr'] ) { echo number_format($balance['balance_inr'],2);}else{ echo "0.00";} ?></a></td>
+		
+		</tr>
+		<?php  }
+						    $sq="select special_coin_wallet.*,m.special_coin_name from special_coin_wallet  inner join users as m on m.id=special_coin_wallet.merchant_id where user_id='$a_user_id'";
+						
+						$sub_rows = mysqli_query($conn,$sq);
+						 if(mysqli_num_rows($sub_rows)>0){
+							while ($swallet=mysqli_fetch_assoc($sub_rows)){
+					?>
+					
+					<tr><th><?php echo $swallet['special_coin_name'];?></th>
+					<td><a href="transaction_history.php?coin_type=<?php echo $swallet['special_coin_name'];?>">
+					<?php if($swallet['coin_balance']){echo number_format($swallet['coin_balance'],2);}else{ echo "0.00";} ?></a></td></tr>
+						
+							<?php } } ?>
 	</table>
   </ul>
 </li>
@@ -137,7 +165,7 @@ $pending_count=mysqli_num_rows($result1);
 	  if(($setup_shop=="y") && ($user_roles=="2")){ ?>   
 	<a class="Logoutpop">Logout</a>
 	<?php } else { ?>
-	  	<a href="logout.php">Logout </a>     
+	  	<span type="normal_logout" class="logout" href="">Logout </span>     
 	<?php } ?>
 	<!-- // logout menu -->
 </div>
@@ -158,7 +186,7 @@ $pending_count=mysqli_num_rows($result1);
                                     <form id ="closeshop">
                                         <div class="modal-body closeshop" style="padding-bottom:0px;max-height:50vh;overflow-x: auto;">
 										  
-												<a href="logout.php?s=shop_close" class="btn btn-primary">Shop Close with Logout  </a>  
+												<span href="logout.php?s=shop_close" type="shop_close" class="btn btn-primary logout_shop">Shop Close with Logout  </span>     
 												&nbsp;&nbsp;&nbsp;&nbsp;
 												<?php
 												  if($pending_count>0)
@@ -174,7 +202,7 @@ $pending_count=mysqli_num_rows($result1);
 												<!--a  href="<?php echo $url; ?>" class="btn btn-primary  <?php if($pending_count>0){ echo "print_shift_stop";} ?>" ">Logout & Shift Close </a>  
 												<br/>
 												<br/!-->
-													<a href="logout.php" class="btn btn-primary">Logout </a>    
+													<span href="logout.php"  type="normal_logout" class="btn btn-primary logout">Logout </span>    
 											
 										
                                         </div>

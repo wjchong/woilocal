@@ -256,13 +256,13 @@
 		$pdf->SetX(5);
 		$pdf->Write(4, 'SST Total ');
 		$pdf->SetX(40);
-		$pdf->Write(4,number_format($$incssttotal, 2));
+		$pdf->Write(4,number_format($incssttotal, 2));
 		$pdf->Ln();
 		
 		$pdf->SetX(5);
 		$pdf->Write(4, 'Grand Sales Total: ');
 		$pdf->SetX(40);
-			$pdf->Write(4,number_format($$g_total_amounts, 2));
+			$pdf->Write(4,number_format($g_total_amounts, 2));
 		// $pdf->Write(4,$g_total_amounts);
 		$pdf->Ln();
 	}

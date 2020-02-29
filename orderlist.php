@@ -41,17 +41,22 @@
    {
 	   $user_id=$_SESSION['login'];
    }
-  
-     $query="SELECT order_list.*, sections.name as section_name FROM order_list left join sections on order_list.section_type = sections.id WHERE order_list.user_id ='".$user_id."' ORDER BY `created_on` DESC LIMIT $limit";
-// die;
+    // echo $user_id;
+	// die;
+       $query="SELECT order_list.*, sections.name as section_name FROM order_list left join sections on order_list.section_type = sections.id WHERE order_list.user_id ='".$user_id."' ORDER BY `created_on` DESC LIMIT $limit";
+
      $total_rows = mysqli_query($conn,$query);
 	 
 	 $user_order = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM order_list WHERE user_id ='".$user_id."' ORDER BY `created_on` DESC limit 0,1"));
 	   $totalcount=count($user_order);
 	 // print_R($user_order);
 	 // die;
+	  $total_rebate_amount=$user_order['total_rebate_amount'];
+	  $total_rebate_amount=number_format($total_rebate_amount,2);
+	  $rebate_credited=$user_order['rebate_credited'];
+	  $wallet=$user_order['wallet'];
+	
 	 $check_number=$user_order['user_mobile'];
-	 $rebate_amount=$user_order['rebate_amount'];
 	 $check_number=str_replace("60","",$check_number);
 	 $order_id=$user_order['id'];
 	 $section_saved=$user_order['section_saved'];
@@ -69,8 +74,11 @@
 		    $user_id=$user_order['user_id'];
 	    $uinfo = mysqli_query($conn,"select * from users where id='$user_id'");
         $user_data = mysqli_fetch_array($uinfo);
+		// print_R($user_data);
+		// die;
 		$password_created=$user_data['password_created'];
 		$otp_verified=$user_data['otp_verified'];
+		$otp_verified="y";  
 		$user_password=$user_data['password'];
 	   }
 	  if(isset($_POST['method'])){
@@ -95,8 +103,9 @@
 	    $info = mysqli_query($conn,"select * from users where id='$merchant_id'");
 		$online_pay=$user_order['online_pay'];
 		$payment_alert=$user_order['payment_alert'];
+		$prepaid=$user_order['prepaid'];
         $merchant_data = mysqli_fetch_array($info);
-		if($online_pay)
+		if($online_pay && $prepaid=="n")
 		{
 			$cash_check = $merchant_data['cash_check'];
 			$credit_check = $merchant_data['credit_check'];
@@ -137,7 +146,7 @@
 		// print_R($offerdata);
 		// die;
    }
-	 if($show_alert=="y" && $section_saved=="y" && ($payment_alert=="n" || $payment_alert=="verified"))
+	 if($show_alert=="y" && $section_saved=="y")
 	 {
 		$res1= mysqli_query($conn,"UPDATE `order_list` set show_alert ='n' WHERE id ='$order_id'");
 	     
@@ -1040,6 +1049,8 @@ input[name='p_total[]'],input[name='p_price[]']{
                      <th>Price</th>
                      <th><?php echo $language["amount"];?></th>
                      <th><?php echo $language["total"]?></th>
+					    <th><?php echo "Paid By Wallet";?></th>
+                            <th><?php echo "Bal.  Payment";?></th>
                      <th><?php echo $language["mode_of_payment"];?></th>
                      <th><?php echo $language["rating_comment"];?></th>
                      <th><?php echo $language["print"];?></th>
@@ -1051,6 +1062,14 @@ input[name='p_total[]'],input[name='p_price[]']{
 				  
 				  //print_r($row);
 				 // echo "<hr>";
+					$wallet=$row['wallet'];
+					if($wallet=="myr_bal")
+					$wal_label="MYR WALLET";
+				    else if($wallet=="inr_bal")
+					$wal_label="KOO COIN";
+					 else if($wallet=="usd_bal")
+					$wal_label="CF WALLET";
+					else $wal_label="CASH";
                   	$product_ids = explode(",",$row['product_id']);
                   	$quantity_ids = explode(",",$row['quantity']);
                   	$product_code = explode(",",$row['product_code']);
@@ -1101,7 +1120,7 @@ input[name='p_total[]'],input[name='p_price[]']{
                         }
                         ?></td>
                     <td><a href="<?php echo $site_url; ?>/view_merchant.php?sid=<?php echo $merchant_name['mobile_number'];?>"><?php echo $merchant_name['name'];  ?></td>
-                        
+                        <!--  -->
 						<td>
                        <?php
                         $sta = $row['status'] == 1 ? "Done" : "Pending"?>
@@ -1114,8 +1133,11 @@ input[name='p_total[]'],input[name='p_price[]']{
                      </td>   
 					   <td><?php echo $section_type['name'];?></td>
                          <td><?php echo $row['table_type'];?></td>
-                         <td><?php echo $row['invoice_no'];?></td>
-                         <td class="location_<?php echo $row['id']; ?> new_tablee"><?php echo $row['location'];?></td>
+                         <td><?php echo ($row['invoice_no']%1000);?></td>
+                        <td class="location_<?php echo $row['id']; ?> new_tablee">
+							<a class="" target="_blank" href="http://maps.google.com/maps?q=<?php echo  $row['location']; ?>">  
+						
+							<?php echo $row['location'];?></a></td>
   <td><a target="_blank" href="<?php echo $site_url; ?>/chat/chat.php?sender=<?php echo $user_id;?>&receiver=<?php echo $row['merchant_id'];?>"><i class="fa fa-comments-o"></i></a></td>
                          <?php if($merchant_name['number_lock'] == 0){?>
                             <td><?php echo $merchant_name['mobile_number'];?></td>
@@ -1207,9 +1229,11 @@ input[name='p_total[]'],input[name='p_price[]']{
                         } 
                         echo  $total;
                            ?> </td>
-
-                     <td><?php echo $row['wallet'];  ?></td>
-                     <td>
+					<td><?php echo @number_format($row['wallet_paid_amount'],2); ?></td>
+							<td><?php echo @number_format($total-$row['wallet_paid_amount'], 2); ?></td>
+                           
+                     <td><?php echo $wal_label;  ?></td>   
+                     <td>   
                         <?php //if($row['status']== '1'){ ?>
 							 <label class="dp_lab"  data-id="<?php echo $merchant_name['id'];  ?>" data-oid="<?php echo $total;?>" data-orid="<?php echo $row['id']; ?>">Click Here</label>
 
@@ -1218,7 +1242,7 @@ input[name='p_total[]'],input[name='p_price[]']{
                      <?php if($sta == "Done"){?>
                         <?php $merchant = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM order_list WHERE id ='".$row['id']."'"));	?>
                       <td><a target="_blank" href="print.php?id=<?php echo $row['id'];?>&merchant=<?php echo $merchant['merchant_id']?>">Print</a></td>
-                      <td><?php echo $user_name['account_type']; ?></td>
+                      <td><?php echo $user_name['account_type']; ?></td>   
                       <?php }?>
                   </tr>
                   <?php  	 $i++; ?>
@@ -1453,8 +1477,8 @@ input[name='p_total[]'],input[name='p_price[]']{
                     <div class="modal-body" style="padding-bottom:0px;">
 					       <p>Select Payment Mode</p>
 							<select class="form-control text_payment required" id="text_payment" style="font-weight: bold;" name="wallet">  
-        						<option class="text_csah" value='cash_<?php echo $order_total['id'];?>'><?php echo $language["cash"] ;?></option>
-        						<option value='wallet'><?php echo $language["wallet"];?></option>
+        						<!--<option class="text_csah" value='cash_<?php echo $order_total['id'];?>'><?php echo $language["cash"] ;?></option>
+        						<option value='MYR'><?php echo $language["wallet"];?></option>  !-->
 								<?php if($merchant['mobile_number']!="60172669613"){ ?>
         						
 								<?php if($credit_check == "1"){?>
@@ -1489,9 +1513,6 @@ input[name='p_total[]'],input[name='p_price[]']{
 						<!-- jupiter 24.02.19 -->
 							<?php if($merchant['mobile_number']!="60172669613"){    ?>
 					  <div class="payment_section">
-					  <?php if($rebate_amount>0){ ?>
-					  <h6 id="wallet_discount">You Will Recieve CashBack of <?php echo $rebate_amount; ?> $ By Selecting Wallet Payment</h6>
-					  <?php } ?>
 					  	<table class="table" border="1" style="margin-top: 10px; " >
 					  		<tbody>
 					  			<!--tr>
@@ -1499,12 +1520,6 @@ input[name='p_total[]'],input[name='p_price[]']{
 						  			<td><img src="images/payments/cash.png" class="img60"></td>
 						  			<td><img src="images/payments/<?= $cash_image;?>.jpg" class="img60"></a></td>
 					  			</tr!-->
-								<tr id="all_wallet" style="display:none;">
-					  				<td><h5 class="wallet_select" type="myr">MYR</h5></td>
-					  				<td><h5 class="wallet_select" type="cf">CF</h5></td>
-					  				<td><h5 class="wallet_select" type="koocoin">Koo coin</h5></td>
-						  			
-					  			</tr>
 								<?php if($credit_check == "1"){?>
 					  			<tr>
 					  				<td><h5 class="payment_title">Credit Card</h5></td>
@@ -1669,10 +1684,15 @@ input[name='p_total[]'],input[name='p_price[]']{
                 </div>
                  
                     <div class="modal-body" style="padding-bottom:0px;">
-					    <?php if(($new_order=="y") && ($show_alert=="y")){ ?>
-             <p style="font-size: 16px;color: red;"><span style='font-size:20px;'>&#128512;</span> Congratulations ! Your order has been sent to our kitchen!</p>
-			  <?php if($rebate_amount>0){  echo "<p>Note: Rebate is Applicable</p>";} ?> 
-              <?php } ?>
+					    <?php if(($new_order=="y") && ($show_alert=="y")){  if($total_rebate_amount>0 && $rebate_credited!='y'){?>
+             <!--p style="font-size: 16px;color: red;"><span style='font-size:20px;'>&#128512;</span> Congratulations ! Your order has been sent to our kitchen!</p!-->
+           		
+					<p style="font-size: 16px;color: red;"><span style='font-size:20px;'>&#128512;</span> Congratulations ! your order is completed. Your rebate amount is RM <?php echo $total_rebate_amount;?>, which will be credited to your wallet after 24 hours.</p>
+					
+						<?php } else { ?>
+						  <p style="font-size: 16px;color: red;"><span style='font-size:20px;'>&#128512;</span> Congratulations ! Your order has been completed and send to kitchen! just wait for your foods to be served</p>
+			   
+						<?php }}  ?>     
 						<?php if($first_table_id=='' || $first_section_id==''){ ?>
                         <div class="col-md-12" style="text-align: center;">
                          <span><strong> If you have found your table, kindly key in now:-</strong></span>
@@ -1747,17 +1767,41 @@ input[name='p_total[]'],input[name='p_price[]']{
 			  <input type="hidden" id="order_id" value="<?php echo $user_order['id']; ?>"/>
 			  <input type="hidden" id="system_otp"/>
 			  <input type="hidden"  value='0' id="otp_count"/>
-			  <?php if(($new_order=="y") && ($show_alert=="y")){ ?>
-             <p style="font-size: 16px;color: red;"><span style='font-size:20px;'>&#128512;</span> Congratulations ! Your order has been sent to our kitchen!</p
-			 <?php if($rebate_amount>0){  echo "<p>Note: Rebate is Applicable</p>";}?> 
-              <?php } ?>
+			     <p id="show_msg" style="font-size: 16px;color: red;"><span style='font-size:20px;'>&#128512;</span> 
+				  <?php 
+				   if(($total_rebate_amount>0)  && $rebate_credited!="y"){
+					   $o_msg="Congratulations ! your order is completed. Your rebate amount is RM ".$total_rebate_amount.", which will be credited to your wallet after 24 hours.";
+				   }
+				   else
+				   {
+					   $o_msg="Congratulations ! Your order has been completed and send to kitchen! just wait for your foods to be served";
+				   }
+				  if(($new_order=="y") && ($show_alert=="y")){
+					   if(($total_rebate_amount>0)  && $rebate_credited!="y"){
+						   if($_SESSION['tmp_login'] && $_SESSION['login']==''){
+							   echo "Congratulation, your order is completed. Please login to claim for your rebate of RM ".$total_rebate_amount." into your KOO Coin wallet.";
+						   } else if($otp_verified=="n")
+						   {
+							echo "Congratulations! Your order is completed. Your rebate of RM ".$total_rebate_amount." will be credited after you have verified your telephone number through the below OTP code (sent to you through SMS)";
+						   } else {
+							  echo $o_msg;
+						   }
+					   }
+					   else { echo "Congratulations ! Your order has been completed and send to kitchen! just wait for your foods to be served";}
+				  }  else { echo "Congratulations ! Your order has been completed and send to kitchen! just wait for your foods to be served";}?>
+				 </p>
 			</div>
 			<div class="form-group otp_form" style="display:none;">
-				 <label for="login_password">Create Password to login</label>
-                <input  type="password" id="create_ajax_password" class="form-control" name="create_password" required/>
-				  <i  onclick="myFunction()" id="eye_slash" class="fa fa-eye-slash" aria-hidden="true"></i>
-	  <span onclick="myFunction()" id="eye_pass"> Show Password </span>
-				
+				<div id="divOuter">
+					<div id="divInner">
+					Otp code
+						<input id="partitioned" type="Number" maxlength="4" />
+						   <!--small style="float:right;color:#28a745;display:none;" class="resend send_otp">Resend</small!-->
+						 <small class="otp_error" style="display: none;color:#e6614f;">
+							Invalid Otp code
+						</small>
+					</div>
+				</div>
 			</div>
 				
 			  <div class="login_passwd_field" style="display:none;">
@@ -1792,14 +1836,7 @@ input[name='p_total[]'],input[name='p_price[]']{
           </div>
           <div class="modal-footer login_footer">
             <div class="row" style="margin: 0;">
-			  <div class="col" style="padding: 0;margin: 5px;">
-                
-                <input type="submit" class="btn btn-primary create_password"  name="" value="Create" style="float: right;"/>
-				 <small id="login_error" style="color:#e6614f;">
-                 
-                </small>
-				   
-              </div>
+			 
              
               <div class="col otp_fields join_now" style="padding: 0;margin: 5px;display:none;">
                 
@@ -1877,7 +1914,7 @@ function myFunction2() {
 		}
 		else
 		{
-			// nextstep();
+			//nextstep();
 		}
 	    // alert(new_order);
 		  // nextstep();
@@ -1927,19 +1964,14 @@ function myFunction2() {
 		  });
 	   });
    $(".forgot_pass").click(function(){
+	   $('#show_msg').hide();
 		  $('.login_passwd_field').hide();
 		   $(".join_now").hide();
 		   $(".forgot_reset").show();
 		   $(".forgot_now").show();
 		  $('.forgot-form').show();
 	  });  
-   $(".create_password").click(function(){
-	  var payment = $(".create_ajax_password").val();
-   });
-   $(".send_otp").click(function(){
-	   $(".otp_form").show(); 
-	 
-  });
+   
    $(".skiponline").click(function(){
      location.reload();
    });
@@ -2027,64 +2059,6 @@ function myFunction2() {
 		
 		
 	});
-	 $(".wallet_select").click(function(){
-		 var type = $(this).attr('type');
-		 var user_id=<?php echo $user_id; ?>;
-		 if(user_id=='')
-		 {
-			 var online_pay='<?php echo $online_pay; ?>';
-			var payment_alert='<?php echo $payment_alert; ?>';
-			var show_alert='<?php echo $show_alert; ?>';
-		    var new_order='<?php echo $new_order; ?>';
-			var show_pop='<?php echo $show_pop; ?>';
-			var already_login='<?php echo $login_user_id; ?>';
-			var newuser='<?php echo $newuser; ?>';
-		    var show_alert='<?php echo $show_alert; ?>';
-		    var otp_verified='<?php echo $otp_verified; ?>';
-		    var password_created='<?php echo $password_created; ?>';
-			alert(show_alert);
-			 if((show_alert=="y"))    
-				{
-					$('#newuser_model').modal('show'); 
-				}   
-			  
-			   if((newuser=="y") && (show_alert=='y'))
-			   {
-				    
-			   
-					   
-				   if(otp_verified=="n")
-				   {
-					   $('.otp_form').show();
-					   var otp_count=$("#otp_count").val();
-					    var usermobile=$("#user_mobile").val();
-						  // var usermobile=+919001025477;
-						   //target:'#picture';
-							// $(this).hide();
-							
-						   // setTimeout(function () {
-											// $(".resend").show();
-										// }, 15000);
-				   }
-				   else
-				   {
-					   
-				   }
-			   }
-			   if((newuser=="n") && (show_alert=='y'))
-			   {
-				   // alert(already_login);
-				   if(!already_login)
-					{
-						<?php  // unset($_SESSION['new_order']); ?>
-					   $('.login_passwd_field').show();
-					   $('.join_now').show();   
-					   $('.login_ajax').show();
-					   // $(".forgot-form").show();
-					}
-			   }
-		 }
-	 });
 		$("select.text_payment").change(function(e) {
 			e.preventDefault();
 		var payment=$(this).val();
@@ -2098,50 +2072,42 @@ function myFunction2() {
 	  // $("#data").attr("action", action);
 	   // alert(payment);
 	   	$(".payment_type").val(payment);
-		if(payment=="wallet")
+		if((payment=='1') || (payment=="2") || (payment=="3") || (payment=="4") || (payment=="5"))
 		{
-			$('#all_wallet').show();
-		}
-		else
-		{
-			$('#all_wallet').hide();
-			if((payment=='1') || (payment=="2") || (payment=="3") || (payment=="4") || (payment=="5"))
-			{
+			// alert(payment);
+			
+		     $.ajax({
+            url : 'orderlist.php',
+            type : 'post',
+            dataType : 'json',
+            data: {payment: payment, user:user, method: "getPayment"},
+            success: function(data){
+				$("#OnlineModel").modal("hide");
 				// alert(payment);
-				
-				 $.ajax({
-				url : 'orderlist.php',
-				type : 'post',
-				dataType : 'json',
-				data: {payment: payment, user:user, method: "getPayment"},
-				success: function(data){
-					$("#OnlineModel").modal("hide");
-					// alert(payment);
-					if(payment == "1"){
-						$image = "boost.png";
-					} else if(payment == "2"){
-						$image = "grab.jpg";
-					} else if(payment == "3"){
-						$image = "wechat.jpg";
-					} else if(payment == "2"){
-						$image = "touch.png";
-					} else if(payment == "5"){
-						$image = "fpx.png";
-					}
-					var title = $(".text_payment").find(':selected').attr('title'); 
-					$(".payment_header").html(title + "&nbsp <img style='width:90px;' src='images/payments/"+$image+"'>");
-					$(".merchant_name").html(data['name']);
-					$(".mobile").html(data['mobile']);
-					$(".qr_code_image").attr({"src": "uploads/"+data['qr_code']});
-					$(".reference").html(data['remark']);
-					var title = $(".text_payment").find(':selected').attr('title');  
-					// alert(title);
-					$('#payment_type').val(title);
-					$("#paymentModal").modal("show");
-				}
-				}); 	
-			}	
-		}		
+            	if(payment == "1"){
+            		$image = "boost.png";
+            	} else if(payment == "2"){
+            		$image = "grab.jpg";
+            	} else if(payment == "3"){
+            		$image = "wechat.jpg";
+            	} else if(payment == "2"){
+            		$image = "touch.png";
+            	} else if(payment == "5"){
+            		$image = "fpx.png";
+            	}
+				var title = $(".text_payment").find(':selected').attr('title'); 
+            	$(".payment_header").html(title + "&nbsp <img style='width:90px;' src='images/payments/"+$image+"'>");
+            	$(".merchant_name").html(data['name']);
+            	$(".mobile").html(data['mobile']);
+            	$(".qr_code_image").attr({"src": "uploads/"+data['qr_code']});
+            	$(".reference").html(data['remark']);
+				var title = $(".text_payment").find(':selected').attr('title');  
+				// alert(title);
+				$('#payment_type').val(title);
+				$("#paymentModal").modal("show");
+            }
+			}); 	
+		}			
 
 		
 		
@@ -2150,6 +2116,7 @@ function myFunction2() {
 		{
 			
 			var online_pay='<?php echo $online_pay; ?>';
+			var prepaid='<?php echo $prepaid; ?>';
 			var payment_alert='<?php echo $payment_alert; ?>';
 			var show_alert='<?php echo $show_alert; ?>';
 		    var new_order='<?php echo $new_order; ?>';
@@ -2162,8 +2129,8 @@ function myFunction2() {
 			$('#SectionModel').modal('hide');
 			// alert(show_alert);
 			// alert(password_created);
-			// alert(otp_verified);
-			
+			// alert(new_order);
+			var otp_verified="y";
 			if((show_alert=="n") && (password_created=="n") && (otp_verified=="y"))
 			{
 				 
@@ -2172,15 +2139,7 @@ function myFunction2() {
 			
 			if(new_order=="y")
 			{
-				if(payment_alert=='y')
-				{
-					if(online_pay)
-					{
-						$('#OnlineModel').modal('show');
-					}
-				}
-				else
-				{
+				
 					// alert(show_alert);
 				// alert(show_pop);
 				if((show_alert=="y"))    
@@ -2201,6 +2160,8 @@ function myFunction2() {
 						  // var usermobile=+919001025477;
 						   //target:'#picture';
 							// $(this).hide();
+							// alert(usermobile);
+							// return false;
 							var data = {usermobile:usermobile, method: "sendotp"};
 						  $.ajax({
 							  
@@ -2213,7 +2174,7 @@ function myFunction2() {
 								  if(data.status==true)
 								  {
 									  otp_count++;
-									  
+									  // alert(data.otp);
 									  $("#otp_count").val(otp_count);
 									  $("#system_otp").val(data.otp);
 									 $(".otp_form").show(); 
@@ -2235,7 +2196,7 @@ function myFunction2() {
 				   // alert(already_login);
 				   if(!already_login)
 					{
-						<?php  // unset($_SESSION['new_order']); ?>
+						<?php   unset($_SESSION['new_order']); ?>
 					   $('.login_passwd_field').show();
 					   $('.join_now').show();   
 					   $('.login_ajax').show();
@@ -2243,7 +2204,7 @@ function myFunction2() {
 					}
 			   }
 					
-				}
+				
 				
 			   
 		   }
@@ -2271,8 +2232,8 @@ function myFunction2() {
 					  dataType : 'json',
 					  data:data,
 					  success:function(response){
-							 
-						  if(response==1)
+							var data = JSON.parse(JSON.stringify(response)); 
+						  if(data.status)
 						  {
 							  location.reload();
 							  
@@ -2368,6 +2329,8 @@ function myFunction2() {
   // alert(user_input);
   var page_otp=$("#system_otp").val();
    var usermobile=$("#user_mobile").val();
+   // alert(user_input);
+   // alert(page_otp);
   if(user_input.length % 4 == 0){
 	  if(user_input==page_otp)
 	  {

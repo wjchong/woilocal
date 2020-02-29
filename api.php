@@ -1,6 +1,13 @@
 <?php
 
 require_once "./config.php";
+$session_file = "./sessioned-user.txt";
+if (file_exists($session_file)) {
+    $session_user = file_get_contents("./sessioned-user.txt");
+}
+else {
+    exit("[]");
+}
 $posted = file_get_contents("php://input");
 
 if ($posted != "")
@@ -43,7 +50,7 @@ function UpdateOrder($orderid, $orderstatus)
 }
 
 // Retrieve all order lists
-$query = mysqli_query($conn, "SELECT order_list.*, users.mobile_number FROM order_list inner join users on order_list.user_id = users.id ORDER BY `created_on` DESC");
+$query = mysqli_query($conn, "SELECT order_list.*, users.mobile_number FROM order_list inner join users on order_list.user_id = users.id where order_list.merchant_id='$session_user' ORDER BY `created_on` DESC");
 
 $orders = array();
 $now = date_create(date("Y-m-d G:i:s"));
@@ -119,7 +126,7 @@ foreach ($orders as $order)
 // exit("Quit");
 
 // // Retrieve all sub varient 
-$query = mysqli_query($conn, "SELECT order_varient.* FROM order_varient");
+$query = mysqli_query($conn, "SELECT order_varient.* FROM order_varient where merchant_id='$session_user'");
 
 $order_varient = array();
 $now = date_create(date("Y-m-d G:i:s"));
@@ -140,6 +147,6 @@ while($r = mysqli_fetch_assoc($query))
 header("Content-type: application/json");
 
 $inserted = array("orders" => $remotes, "order_varients" => $order_varient);
-echo json_encode($inserted);
+echo json_encode($inserted);  
 
 ?>

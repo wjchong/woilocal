@@ -26,7 +26,9 @@ if(isset($_POST['submit']))
     if($Cat_data['CMasterID'] > 0 ){
         
         $categoryname = implode(',' , $_POST['categoryname']); 
-        mysqli_query($conn, "update  cat_mater SET CatName='$categoryname' where UserID='$current_id'");
+         $categoryname=mysqli_real_escape_string($conn,$categoryname);
+		
+		 mysqli_query($conn, "update  cat_mater SET CatName='$categoryname' where UserID='$current_id'");
         
         /**
         
@@ -40,6 +42,8 @@ if(isset($_POST['submit']))
     
     }else{
         $categoryname = implode(',' , $_POST['categoryname']);
+     
+      $categoryname=mysqli_real_escape_string($conn,$categoryname);
     mysqli_query($conn, "INSERT INTO  cat_mater SET CatName='$categoryname',UserID='$current_id',DateAdded='$current_date'");
     }    
 	
